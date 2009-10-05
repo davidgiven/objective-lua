@@ -1,0 +1,140 @@
+--------------------------------------------------------------------------
+--                           STANDARD LIBRARY                           --
+--------------------------------------------------------------------------
+
+-- Ha, ha, ha.
+--
+-- This is a bare-bones base class, needed for defining any other
+-- classes. (While you *can* create new class hierarchies if you like,
+-- it's rather against the whole Objective Lua spirit.)
+--
+-- The doesNotRecogniseSelector: support is broken, and is only included
+-- as an example of how this will work. The noddy object system that the
+-- Objective Lua runtime uses is incompatible with this.
+
+@interface Object
+@end
+
+@implementation Object
+	+ alloc
+		local o = {}
+		setmetatable(o, {__index = self._methods })
+		return o
+	end
+
+	-- Bug: these both report the object as Object, not the correct one.
+	-- We're going to have to rewrite the object system to make this work.
+	
+	+ doesNotRecogniseSelector: selector
+		error('Unrecognised selector '..selector..' sent to '..
+			([self name]))
+	end
+	
+	- doesNotRecogniseSelector: selector
+		error('Unrecognised selector '..selector..' sent to instance of '..
+			([[self class] name]))
+	end
+	
+	setmetatable(Object._methods, {__index = Object._methods.doesNotRecogniseSelector_})
+	setmetatable(Object, {__index = Object.doesNotRecogniseSelector_})
+		
+	- init
+		return self
+	end
+@end
+
+--------------------------------------------------------------------------
+--                             EXAMPLE CODE                             --
+--------------------------------------------------------------------------
+
+-- A very simple example showing how to use the various Objective Lua
+-- features. It's mostly intended to be read, rather than to do anything
+-- useful.
+
+@interface Organism : Object
+@end
+
+@interface Plant : Organism
+@end
+
+@interface Cabbage : Plant
+@end
+
+@interface Foxglove : Plant
+@end
+
+@interface Animal : Organism
+@end
+
+@interface Dog : Animal
+@end
+
+@interface Cow : Animal
+@end
+
+@implementation Organism
+	- consume
+		print("I doesn't look edible.")
+	end
+	
+	- vocalise
+		print("I don't make noises.")
+	end
+	
+	- announce
+		print("I'm a "..([[self class] name]).."!")
+	end
+@end
+
+@implementation Cabbage
+	- consume
+		print("Yuk. Vegetables.")
+	end
+@end
+
+@implementation Foxglove
+	- consume
+		print("Suicide is not the only option.")
+	end
+@end
+
+@implementation Animal
+	- consume
+		print("Mmm, proteinaceous cytoplasm.")
+	end
+@end
+
+@implementation Dog
+	- consume
+		[super consume]
+		print("Needs sauce.")
+	end
+	
+	- vocalise
+		print("Woof!")
+	end
+@end
+
+@implementation Cow
+	- consume
+		[super consume]
+		print("Yum!")
+	end
+	
+	- vocalise
+		print("Moo!")
+	end
+@end
+
+-- Now we've defined some classes, let's do something with them.
+-- Note the traditional two-stage object construction. This does make
+-- sense, honest.
+
+local function process(object)
+	[object announce]
+	[object vocalise]
+	[object consume]
+end
+
+process([[Dog alloc] init])
+process([[Foxglove alloc] init])

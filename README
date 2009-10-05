@@ -1,0 +1,85 @@
+                                 OBJECTIVE LUA
+                                 =============
+
+                             Pre-alpha release 0.0.1
+                              (C) 2009 David Given
+                                   2009-10-05
+
+INTRODUCTION
+============
+
+Objective Lua is a toy to experiment with welding the Objective C class
+semantics on top of Lua. It is in no way finished, or even useful.
+Functionality is extremely limited and that functionality is, in places,
+actually broken. However, it does provide a working means of trying out the
+syntax and writing test programs to play with it. 
+
+
+
+INSTALLATION
+============
+
+Installation? Ha.
+
+You need to install the Leg Lua grammar, which can be found here, into your
+Lua module path:
+
+  http://leg.luaforge.net/
+
+Now you can run the Objective Lua compiler with:
+
+  lua oluac.lua <infile> <outfile>
+  
+This will convert an Objective Lua source file into a traditional Lua one,
+which can then be run with a standard Lua interpreter:
+
+  lua <outfile>
+  
+(You need the Objective Lua runtime --- olua.lua --- on your module path.
+The current directory will do fine.)
+
+
+
+DOCUMENTATION
+=============
+
+There is none. The code is tiny, and should be simple enough to understand.
+There's a discussion of the rationale behind Objective Lua on the website at:
+
+  http://www.cowlark.com/objective-lua
+  
+Meanwhile, here is a manifest so you know what you're looking at:
+
+  README - this file.
+  COPYING - the license.
+  oluac.lua - the Objective Lua compiler.
+  olua.lua - the Objective Lua runtime.
+  test.olua - the example program and minimal Object class definition.
+  
+
+
+DISCLAIMER
+==========
+
+Objective Lua is EXPERIMENTAL SOFTWARE!
+
+It is NOT EVEN ALPHA!
+
+DO NOT USE IT for ANYTHING!
+
+If bad stuff happens DO NOT BLAME ME because YOU HAVE BEEN WARNED!
+
+
+
+LEGAL STUFF
+===========
+
+Spey is © 2009 David Given. It is distributable under the conditions
+laid out by the MIT open source license. You can find a copy in the file
+COPYING.
+
+
+REVISION HISTORY
+================
+
+Objective Lua 0.0.1: first toy release.

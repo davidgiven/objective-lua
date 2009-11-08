@@ -1,0 +1,43 @@
+require 'olua'
+
+module("olua.lib", package.seeall)
+
+@implementation Invocation : Object
+	@statics
+		local target
+		local selector
+		local args
+	@end
+	
+	- target do
+		return target
+	end
+	
+	- setTarget: newtarget do
+		target = newtarget
+	end
+	
+	- selector do
+		return selector
+	end
+	
+	- setSelector: newselector do
+		selector = newselector
+	end
+	
+	- arguments do
+		return arguments
+	end
+	
+	- setArguments: newargs do
+		args = newargs
+	end
+	
+	- invokeWithTarget: target do
+		return target[selector](target, unpack(args))
+	end
+	
+	- invoke do
+		return [self invokeWithTarget: target]
+	end
+@end

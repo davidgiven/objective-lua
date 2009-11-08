@@ -1,0 +1,53 @@
+require 'olua'
+
+function return_in_try()
+	@try
+		return 99, 98, 97
+	@catch (e)
+		return 96, 95, 94
+	@end
+	return 90, 89, 88
+end
+
+function return_in_catch()
+	@try
+		@throw 0
+	@catch (e)
+		return 96, 95, 94
+	@end
+	return 90, 89, 88
+end
+
+function return_after_try()
+	@try
+	@catch (e)
+		return 96, 95, 94
+	@end
+	return 90, 89, 88
+end
+
+function throw_catch()
+	@try
+		@throw 99
+	@catch (e)
+		return e
+	@end
+	return 98
+end
+
+function return_from_finally()
+	@try
+		return 99, 98, 97
+	@catch (e)
+		return 96, 95, 94
+	@finally
+		return 93, 92, 91
+	@end
+	return 90, 89, 88
+end
+
+test(return_in_try, {99, 98, 97})
+test(return_in_catch, {96, 95, 94})
+test(return_after_try, {90, 89, 88})
+test(throw_catch, {99})
+test(return_from_finally, {93, 92, 91})

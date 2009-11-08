@@ -1,0 +1,31 @@
+require 'olua'
+
+function test(f, val)
+	local r
+	local fail = nil
+	
+	@try
+		r = {f()}
+		
+		for i = 1, #r do
+			if (r[i] ~= val[i]) then
+				fail = r
+			end
+		end
+		if (#r ~= #val) then
+			fail = r
+		end		
+	@catch (e)
+		fail = {e}
+	@end
+	
+	if fail then
+		local s = {"Test fail: "}
+		for _, v in ipairs(fail) do
+			s[#s+1] = tostring(v)
+		end
+		
+		error(table.concat(s, " "))
+	end
+end
+

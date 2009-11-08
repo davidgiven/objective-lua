@@ -1,0 +1,506 @@
+require 'olua'
+require 'olua.lib'
+require 'markdown'
+local table_concat = table.concat 
+
+--- Stores all the documentation about an OLua method.
+
+@implementation OldotMethod : olua.lib.Object
+	@statics
+		local name = ""
+		local selector = ""
+		local arguments = {}
+		local documentation = ""
+	@end
+	
+	- setName: s
+	do
+		name = s
+	end
+	
+	- name
+	do
+		return name
+	end
+	
+	- setSelector: s
+	do
+		selector = s
+	end
+	
+	- selector
+	do
+		return selector
+	end
+	
+	- setArguments: a
+	do
+		arguments = a
+	end
+	
+	- arguments
+	do
+		return arguments
+	end
+	
+	- setDocumentation: s
+	do
+		documentation = s
+	end
+	
+	- documentation
+	do
+		return documentation
+	end
+	
+	- emitTo: stream
+	do
+		stream[#stream+1] = "### <a name='"..name.."'/>"..name			
+		stream[#stream+1] = documentation
+	end
+@end
+
+--- Stores all the documentation about a OLua category.
+
+@implementation OldotCategory : olua.lib.Object
+	@statics	
+		local name = ""
+		local documentation = ""
+		local methods = {}
+	@end
+	
+	- setName: s do
+		name = s
+	end
+	
+	- name do
+		return name
+	end
+	
+	- setDocumentation: s do
+		documentation = s
+	end
+	
+	- documentation do
+		return documentation
+	end
+	
+	- findMethod: name do
+		local method = methods[name]
+		if not method then
+			method = [[OldotMethod alloc] init]
+			methods[name] = method
+			[method setName: name]
+		end
+		return method
+	end
+
+	- methods
+	do
+		local c = {}
+		for methodname, _ in pairs(methods) do
+			c[#c+1] = methodname
+		end
+		table.sort(c)
+		return c
+	end
+	
+	- emitTo: stream
+	do
+		stream[#stream+1] = "<a name='"..name.."'>"			
+		stream[#stream+1] = documentation
+		
+		for _, methodname in ipairs([self methods]) do
+			local method = [self findMethod: methodname]
+			[method emitTo: stream]
+		end
+	end
+@end
+
+--- Stores all the documentation about a OLua class.
+
+@implementation OldotClass : olua.lib.Object
+	@statics
+		local library = ""
+		local name = ""
+		local superclass = ""
+		local categories = {}
+	@end
+	
+	- setLibrary: s do
+		library = s
+	end
+	
+	- library do
+		return library
+	end
+	
+	- setName: s do
+		name = s
+	end
+	
+	- name do
+		return name
+	end
+	
+	- setSuperclass: s do
+		superclass = s
+	end
+	
+	- findCategory: c do
+		local category = categories[c]
+		if not category then
+			category = [[OldotCategory alloc] init]
+			categories[c] = category
+			[category setName: c]
+		end
+		return category
+	end
+	
+	- categories
+	do
+		local c = {}
+		for categoryname, _ in pairs(categories) do
+			c[#c+1] = categoryname
+		end
+		table.sort(c)
+		return c
+	end
+
+	- emitTo: stream
+	do
+		stream[#stream+1] = "# "..[self name]
+		stream[#stream+1] = ""
+		
+		for _, categoryname in ipairs([self categories]) do
+			stream[#stream+1] = "* ["..categoryname.."](#"..categoryname..")"
+		end
+		
+		stream[#stream+1] = ""
+		for _, categoryname in ipairs([self categories]) do
+			local category = [self findCategory: categoryname]
+			[category emitTo: stream]
+		end
+	end
+@end
+
+
+--- Main application class.
+
+@implementation Oldot : olua.lib.Application
+	- init do
+		[super init]
+		[self initUi]
+		return self
+	end
+	
+	- name do
+		return "oldot"
+	end
+	
+	- run do
+		[self checkArguments]
+		
+		local files = [self remainingArguments]
+		if (#files == 0) then
+			[self error: "you must specify at least one input file"]
+		end
+		
+		local stderr = io.stderr
+		stderr:write("Reading: ")
+		stderr:flush()
+		for _, filename in ipairs(files) do
+			[self parse: filename]
+			stderr:write(".")
+			stderr:flush()
+		end
+		
+		local fp = io.stdout
+		stderr:write("\nWriting: ")
+		stderr:flush()
+		for _, classname in ipairs([self classes]) do
+			local class = [self findClass: classname]
+			local stream = {}			
+			[class emitTo: stream]
+			
+			local filename = classname..".html"
+			fp = [self openOutputFile: filename]
+			fp:write(markdown(table_concat(stream, "\n")))
+			fp:close()
+			stderr:write(".")
+			stderr:flush()
+		end
+		stderr:write("\n")
+	end
+@end
+
+@implementation Oldot (UserInterface)
+	@statics
+		local outputdir
+	@end
+	
+	- initUi
+	do
+		[self addOptions: {"h", "help"}
+			withHandler:
+				function(arg)
+					print("Help.")
+				end]
+				
+		[self addOptions: {"o", "output"}
+			withHandler:
+				function(arg)
+					outputdir = arg
+					return 1
+				end]		
+	end
+
+	- checkArguments
+	do
+		if not outputdir then
+			[self error: "You must specify an output directory."]
+		end
+	end
+		
+	- openOutputFile: filename
+	do
+		local f = outputdir.."/"..filename
+		local fp, e = io.open(f, "w")
+		if not fp then
+			[self error: "Unable to open output file %q: %s", filename, e]
+		end
+		return fp
+	end
+@end
+
+@implementation Oldot (DataStorage)
+	@statics
+		local classes = {}
+	@end
+	
+	- findClass: classname do
+		local class = classes[classname]
+		if not class then
+			class = [[OldotClass alloc] init]
+			classes[classname] = class
+			[class setName: classname]
+		end
+		return class
+	end
+	
+	- classes do
+		local c = {}
+		for classname, _ in pairs(classes) do
+			c[#c+1] = classname
+		end
+		table.sort(c)
+		return c
+	end
+@end
+	
+@implementation Oldot (FileParsing) 
+	@statics
+		local docChunk
+		local library
+		local category
+		
+		local function documentationline(line)
+			docChunk[#docChunk + 1] = line
+		end
+		
+		local function moduleLine(m)
+			library = m
+		end
+		
+		local function applymodule(s)
+			if s:find("%.") then
+				return s
+			end
+			if library then
+				return library .. "." .. s
+			end
+			return s
+		end
+		
+		local function implementationWithSuperclassLine(subclass, superclass)
+			local doc = table_concat(docChunk, "\n")
+			docChunk = {}
+			
+			subclass = applymodule(subclass)
+			superclass = applymodule(superclass)
+			
+			local class = [self findClass: subclass]
+			[class setSuperclass: superclass]
+			category = [class findCategory: "(default)"]
+			[category setDocumentation: doc]
+		end
+		
+		local function implementationWithCategoryLine(subclass, categoryname)
+			local doc = table_concat(docChunk, "\n")
+			docChunk = {}
+			
+			subclass = applymodule(subclass)
+			
+			local class = [self findClass: subclass]
+			category = [class findCategory: categoryname]
+			[category setDocumentation: doc]
+		end
+		
+		local function methodDefinitionLine(line)
+			local doc = table_concat(docChunk, "\n")
+			docChunk = {}
+			
+			local classmethod = false
+			if line:find("^%+") then
+				classmethod = true
+			end
+			
+			local i = 2
+			local function gettoken()
+				local s, e, c
+				-- skip whitespace
+				
+				s, e = line:find("^%s+", i)
+				if s then
+					i = e + 1
+				end
+				
+				if (i > #line) then
+					return nil
+				end
+				 
+				s, e, c = line:find("^(%w+:?)", i)
+				if s then
+					i = e + 1
+					return c
+				end
+				
+				s, e, c = line:find("^,", i)
+				if s then
+					i = e + 1
+					return ","
+				end
+				
+				s, e, c = line:find("^%.%.%.", i)
+				if s then
+					i = e + 1
+					return "..."
+				end
+				
+				return nil
+			end
+
+			local selector = {}
+			local args = {}
+			
+			local t = gettoken()
+			if not t:find(":$") then
+				selector[#selector+1] = t
+				t = gettoken()
+			else
+				repeat
+					selector[#selector+1] = t
+					args[#args+1] = gettoken()
+					t = gettoken()
+				until not t or (t == ",")
+			end
+
+			while (t == ",") do
+				args[#args+1] = gettoken()
+				t = gettoken()
+			end
+		
+			local name = table_concat(selector)
+			
+			local method
+			if classmethod then
+				name = "+"..name
+			else
+				name = "-"..name
+			end
+			local method = [category findMethod: name]
+			[method setSelector: selector]
+			[method setArguments: args]
+			[method setDocumentation: doc]	
+		end
+		
+		local function processline(line)
+			-- Strip spaces.
+			
+			line = line:gsub("^%s*", "")
+			line = line:gsub("%s*$", "")
+
+			-- Documentation chunk?
+			
+			local e, _, m = line:find(
+				"^%-%-%-%s(.*)$")
+			if e then
+				documentationline(m)
+				return
+			end
+			
+			-- Empty line in a documentation chunk?
+
+			local e, _, m = line:find(
+				"^%-%-%-$")
+			if e then
+				documentationline("")
+				return
+			end
+						
+			-- module("...", ...?
+
+			local e, _, m = line:find(
+				"^module%([\"']([%w.]+)[\"']")
+			if e then
+				moduleLine(m)
+			end
+			
+			-- @interface Subclass : Superclass?
+			
+			local e, _, subclass, superclass = line:find(
+				"^@implementation%s+([%w.]+)%s*:%s*([%w.]+)$")
+			if e then
+				implementationWithSuperclassLine(subclass, superclass)
+			end
+			
+			-- @interface Subclass (Category)?
+			
+			local e, _, subclass, category = line:find(
+				"^@implementation%s+([%w.]+)%s*%(([%w.]+)%)$")
+			if e then
+				implementationWithCategoryLine(subclass, category)
+			end
+			
+			-- [+-] selector...?
+			
+			local e, _ = line:find(
+				"^[-+]%s+")
+			if e then
+				methodDefinitionLine(line)
+			end
+		end
+	@end
+	
+	- parse: filename do
+		local fp = io.open(filename)
+		if not fp then
+			[self error: "unable to open input file %q", filename]
+		end
+		
+		docChunk = {}
+		library = nil
+		
+		for line in fp:lines() do
+			processline(line)
+		end
+		
+		if (#docChunk > 0) then
+			[self error: "orphaned documentation block at end of file"]
+		end
+		
+		fp:close()
+	end
+@end
+
+return [[[Oldot alloc] init] runWithArgs: {...}]

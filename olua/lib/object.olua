@@ -1,0 +1,157 @@
+require 'olua'
+
+local olua_isobject = olua.isobject
+local olua_newobjectid = olua.newobjectid
+
+module("olua.lib", package.seeall)
+
+local metatable =
+	{
+		__add = function(self, other) return [self operatorAdd: other] end,
+		__sub = function(self, other) return [self operatorSubtract: other] end,
+		__mul = function(self, other) return [self operatorMultiply: other] end,
+		__div = function(self, other) return [self operatorDivide: other] end,
+		__mod = function(self, other) return [self operatorModulus: other] end,
+		__pow = function(self, other) return [self operatorPower: other] end,
+		__unm = function(self) return [self operatorNegate: other] end,
+		__concat = function(self, other) return [self operatorConcatenate: other] end,
+		__len = function(self) return [self operatorLength] end,
+		__eq = function(self, other) return [self operatorEquals: other] end,
+		__lt = function(self, other) return [self operatorLessThan: other] end,
+		__le = function(self, other) return [self operatorLessThanOrEqualTo: other] end,
+		__index = function(self, key) return [self operatorIndex: key] end,
+		__newindex = function(self, key, value) return [self operatorIndex: key withValue: value] end,
+		__call = function(self, ...) return [self operatorCall: ...] end,
+		__tostring = function(self) return [self toString] end
+	}
+		
+@implementation Object (BaseMethods)
+	-- Create a new object.
+
+	+ alloc do
+		local class = self
+		local superclass = [class superclass]
+		
+		-- Collect the template chain.
+		
+		local templates = {[class methodTemplates]}
+		do
+			local c = superclass
+			while c do
+				templates[#templates+1] = [c methodTemplates]
+				c = [c superclass]
+			end
+		end
+	
+		-- Create the object.
+			
+		local object = {}
+		object.class = function(self)
+			return class
+		end
+		object.superclass = function(self)
+			return superclass
+		end
+		
+		local thisobjectid = olua_newobjectid()
+		object.hash = function(self)
+			return thisobjectid
+		end
+		
+		-- Instantiate all the templates (in superclass-to-subclass order).
+		
+		local super = nil
+		for i = #templates, 1, -1 do
+			local current = {}
+			setmetatable(current, {__index=super})
+			
+			for _, template in ipairs(templates[i]) do
+				template(current, super, object)
+			end
+			
+			for k, v in pairs(current) do
+				object[k] = v
+			end
+			
+			super = current
+		end
+		
+		-- Done.
+		
+		setmetatable(object, metatable)
+		return object
+	end
+	
+	+ toString do
+		return "["..[self name].." class@"..[self hash].."]"
+	end
+@end
+
+@implementation Object (BaseMethods)
+	- init do
+		return self
+	end
+
+	- toString do
+		return "["..[[self class] name].."@"..[self hash].."]"
+	end
+		
+	- isKindOfClass: class do
+		if not class then
+			@throw [[InvalidArgumentException alloc] initWith:
+				"class argument cannot be nil"]
+		end
+		
+		local cf = self.class
+		local o = self
+		while cf do
+			local c = cf(o)
+			if (c == class) then
+				return true
+			end
+			if not c then
+				return false
+			end
+			
+			o = c
+			cf = o.superclass
+		end
+		
+		return false 
+	end
+	
+	- respondsToSelector: selector do
+		if self[selector] then
+			return true
+		end
+		return false
+	end
+	
+	- isProxy do
+		return false
+	end
+	
+	- performSelector: selector do
+		return [self performSelector: selector withArgs: {}]
+	end
+	
+	- performSelector: selector withArgs: args do
+		return self[selector](self, unpack(args))
+	end
+@end
+
+@implementation Object (UnrecognisedSelectors)
+	- operatorIndex: key do
+		return function(self, ...)
+			local message = [[Invocation alloc] init]
+			[message setTarget: self]
+			[message setSelector: key]
+			[message setArguments: {...}]
+			return [self forwardInvocation: message]
+		end
+	end
+	
+	- forwardInvocation: message do
+		@throw [[UnhandledMessageException alloc] initWith: message]
+	end
+@end

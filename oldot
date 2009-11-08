@@ -1,0 +1,2 @@
+#!/bin/sh
+exec lua tools/oluarun.lua -- tools/oldot.olua "$@"

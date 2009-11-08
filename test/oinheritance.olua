@@ -1,0 +1,61 @@
+require 'olua'
+
+do
+	@implementation Superclass : olua.lib.Object
+		- method1
+			return 1
+		end
+		
+		- method2
+			return 2
+		end
+		
+		- method3
+			return 3
+		end
+	@end
+	
+	@implementation Subclass1 : Superclass
+		- method1
+			return [super method1]
+		end
+		
+		- method2
+			return 4
+		end
+	@end
+	
+	@implementation Subclass2 : Subclass1
+		- method1
+			return [super method1]
+		end
+		
+		- method2
+			return [super method2]
+		end
+		
+		- method3
+			return 5
+		end
+	@end
+
+	local o1 = [[Superclass alloc] init]
+	local o2 = [[Subclass1 alloc] init]
+	local o3 = [[Subclass2 alloc] init]
+			
+	test(function()
+		return [o1 method1], [o1 method2], [o1 method3]
+	end,
+		{1, 2, 3})
+		
+	test(function()
+		return [o2 method1], [o2 method2], [o2 method3]
+	end,
+		{1, 4, 3})
+		
+	test(function()
+		return [o3 method1], [o3 method2], [o3 method3]
+	end,
+		{1, 4, 5})
+		
+end

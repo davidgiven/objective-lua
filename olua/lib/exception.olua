@@ -1,0 +1,77 @@
+require 'olua'
+
+module("olua.lib", package.seeall)
+
+@implementation Exception : Object
+	@statics
+		local traceback
+	@end
+	
+	- init do
+		[super init]
+		if debug and debug.traceback then
+			traceback = debug.traceback()
+		end
+		return self
+	end
+	
+	- throw do
+		@throw self
+	end
+	
+	- traceback do
+		return traceback
+	end
+@end
+
+@implementation LegacyException : Exception
+	@statics
+		local message = "nil"
+	@end
+	
+	- initWith: newmessage do
+		message = newmessage
+		return [super init]
+	end
+	
+	- toString do
+		return "Legacy exception: "..message
+	end
+@end
+
+@implementation LegacyException (StaticConstructors)
+	+ createFrom: e do
+		local newe = [LegacyException alloc]
+		return [newe initWith: e]
+	end
+@end
+
+@implementation UnhandledMessageException : Exception
+	@statics
+		local message
+	@end
+	
+	- initWith: newmessage do
+		message = newmessage
+		return [super init]
+	end
+	
+	- toString do
+		return "Unhandled selector '"..[message selector].."'"
+	end
+@end
+
+@implementation InvalidArgumentException : Exception
+	@statics
+		local text
+	@end
+	
+	- initWith: newtext do
+		text = newtext
+		return [super init]
+	end
+		
+	- toString do
+		return text
+	end
+@end

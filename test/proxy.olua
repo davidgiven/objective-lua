@@ -1,0 +1,19 @@
+require 'olua'
+
+do
+	@implementation TestClass : olua.lib.Object
+		- value
+			return 99, 98
+		end
+		
+		- value: n
+			return n + 1
+		end
+	@end
+	
+	local target = [[TestClass alloc] init]
+	local proxy = [[olua.lib.Proxy alloc] initWithTarget: target]
+	
+	test(function() return [proxy value] end, {99, 98})
+	test(function() return [proxy value: 1] end, {2})
+end

@@ -3,6 +3,10 @@ require 'olua.lib'
 require 'markdown'
 local table_concat = table.concat 
 
+local VERSION = "0.1"
+
+local OLDOT
+
 --- Stores all the documentation about an OLua method.
 
 @implementation OldotMethod : olua.lib.Object
@@ -11,6 +15,8 @@ local table_concat = table.concat
 		local selector = ""
 		local arguments = {}
 		local documentation = ""
+		local argumentDocumentation = nil
+		local returnDocumentation = nil
 	@end
 	
 	- setName: s
@@ -43,6 +49,16 @@ local table_concat = table.concat
 		return arguments
 	end
 	
+	- setArgumentDocumentation: d
+	do
+		argumentDocumentation = d
+	end
+	
+	- setReturnDocumentation: d
+	do
+		returnDocumentation = d
+	end
+	
 	- setDocumentation: s
 	do
 		documentation = s
@@ -55,8 +71,55 @@ local table_concat = table.concat
 	
 	- emitTo: stream
 	do
-		stream[#stream+1] = "### <a name='"..name.."'/>"..name			
+		stream[#stream+1] = "### <a name='"..name.."'>"..name.."</a>"			
 		stream[#stream+1] = documentation
+		
+		local s = {}
+		if (#arguments == 0) then
+			s[#s+1] = "<code>"..selector[1].."</code>"
+		else
+			for i = 1, #arguments do
+				local se = selector[i]
+				local ae = arguments[i]
+				
+				s[#s+1] = "<code>"
+				if se then
+					s[#s+1] = se
+				end
+				if not se or (se:sub(-1) ~= ":") then
+					s[#s+1] = ","
+				end
+				s[#s+1] = " </code>"
+				
+				s[#s+1] = "<i>"
+				s[#s+1] = ae
+				s[#s+1] = "</i>"
+			end
+		end
+		
+		stream[#stream+1] = "#### "..table_concat(s)
+		
+		if argumentDocumentation then
+			stream[#stream+1] = "#### Parameters:"
+			
+			stream[#stream+1] = "<dl>"
+			for _, a in ipairs(argumentDocumentation) do
+				stream[#stream+1] = "<dt><i>"
+				stream[#stream+1] = a[1]
+				stream[#stream+1] = "</i></dt>"
+				
+				stream[#stream+1] = "<dd>"
+				stream[#stream+1] = a[2]
+				stream[#stream+1] = "</dd>"
+			end
+			stream[#stream+1] = "</dl>"
+		end
+				 
+		if returnDocumentation then
+			stream[#stream+1] = "#### Returning:"
+			stream[#stream+1] = returnDocumentation
+		end
+				 
 	end
 @end
 
@@ -107,7 +170,7 @@ local table_concat = table.concat
 	
 	- emitTo: stream
 	do
-		stream[#stream+1] = "<a name='"..name.."'>"			
+		stream[#stream+1] = "<a name='"..name.."'>".."</a>"			
 		stream[#stream+1] = documentation
 		
 		for _, methodname in ipairs([self methods]) do
@@ -123,7 +186,7 @@ local table_concat = table.concat
 	@statics
 		local library = ""
 		local name = ""
-		local superclass = ""
+		local superclass = nil
 		local categories = {}
 	@end
 	
@@ -145,6 +208,11 @@ local table_concat = table.concat
 	
 	- setSuperclass: s do
 		superclass = s
+	end
+	
+	- superclass
+	do
+		return superclass
 	end
 	
 	- findCategory: c do
@@ -169,18 +237,107 @@ local table_concat = table.concat
 
 	- emitTo: stream
 	do
-		stream[#stream+1] = "# "..[self name]
-		stream[#stream+1] = ""
+		local _, _, library, name = [self name]:find("^([%w%.]+)%.(%w*)$")
+		stream[#stream+1] = "<h2>"
+		if library then
+			stream[#stream+1] = "<font size='-1'>"
+			stream[#stream+1] = library
+			stream[#stream+1] = "</font></br>Class "
+			stream[#stream+1] = name
+		else
+			name = [self name]
+			stream[#stream+1] = "Class "
+			stream[#stream+1] = name
+		end
+		stream[#stream+1] = "</h2>"
 		
-		for _, categoryname in ipairs([self categories]) do
-			stream[#stream+1] = "* ["..categoryname.."](#"..categoryname..")"
+		do
+			local hierarchy = {}
+			local c = self
+			repeat
+				hierarchy[#hierarchy+1] = c
+				local scname = [c superclass]
+				if not scname then
+					break
+				end
+				c = [OLDOT findClass: scname]
+			until not c
+			
+			local indent = 0
+			local s = {"<pre>"}
+			
+			for i = #hierarchy, 1, -1 do
+				local c = hierarchy[i]
+				local cname = [c name]
+				
+				if (i ~= #hierarchy) then
+					for j = 0, indent-1 do
+						s[#s+1] = "&nbsp;"
+					end
+					s[#s+1] = "└─ "
+					indent = indent + 3
+				end
+				if (c ~= self) then
+					s[#s+1] = "<a href='"
+					s[#s+1] = cname
+					s[#s+1] = ".html'>"
+					s[#s+1] = cname
+					s[#s+1] = "</a>"
+				else
+					s[#s+1] = "<b>"
+					s[#s+1] = cname
+					s[#s+1] = "</b>"
+				end
+				s[#s+1] = "</br>"
+			end
+			s[#s+1] = "</pre>"
+			stream[#stream+1] = table_concat(s)
 		end
 		
-		stream[#stream+1] = ""
+		stream[#stream+1] = "<hr/>"
+		
+		local defaultCategory = [self findCategory: "-default-"]
+		if defaultCategory then
+			stream[#stream+1] = markdown([defaultCategory documentation])
+		end
+		
+		stream[#stream+1] = "<hr/>"
+		
+		local allmethods = {}
 		for _, categoryname in ipairs([self categories]) do
 			local category = [self findCategory: categoryname]
-			[category emitTo: stream]
+			for _, methodname in ipairs([category methods]) do
+				allmethods[#allmethods+1] = {
+					name=methodname,
+					method=[category findMethod: methodname]
+				}
+			end 
 		end
+		table.sort(allmethods,
+			function(m1, m2)
+				return m1.name < m2.name
+			end)
+
+		stream[#stream+1] = "<dl class='methodlist'>"
+		for _, m in ipairs(allmethods) do
+			stream[#stream+1] = "<dt><a href='#"
+			stream[#stream+1] = m.name
+			stream[#stream+1] = "'>"
+			stream[#stream+1] = m.name
+			stream[#stream+1] = "</a></dt>"
+			
+			local doc = [m.method documentation]
+			if doc then
+				local i = doc:find("\n\n")
+				doc = doc:sub(1, i)
+			end
+			if doc then
+				stream[#stream+1] = "<dd>"
+				stream[#stream+1] = markdown(doc)
+				stream[#stream+1] = "</dd>"
+			end
+		end
+		stream[#stream+1] = "</dl>"		
 	end
 @end
 
@@ -188,17 +345,20 @@ local table_concat = table.concat
 --- Main application class.
 
 @implementation Oldot : olua.lib.Application
-	- init do
+	- init
+	do
 		[super init]
 		[self initUi]
 		return self
 	end
 	
-	- name do
+	- name
+	do
 		return "oldot"
 	end
 	
-	- run do
+	- run
+	do
 		[self checkArguments]
 		
 		local files = [self remainingArguments]
@@ -220,13 +380,20 @@ local table_concat = table.concat
 		stderr:flush()
 		for _, classname in ipairs([self classes]) do
 			local class = [self findClass: classname]
-			local stream = {}			
+
+			local stream = {
+				"<html><head>",
+				"<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>",
+				"<title>", classname, "</title></head><body>"
+			}
 			[class emitTo: stream]
+			stream[#stream+1] = "</body></html>"
 			
 			local filename = classname..".html"
 			fp = [self openOutputFile: filename]
-			fp:write(markdown(table_concat(stream, "\n")))
+			fp:write(table_concat(stream))
 			fp:close()
+			
 			stderr:write(".")
 			stderr:flush()
 		end
@@ -244,7 +411,8 @@ local table_concat = table.concat
 		[self addOptions: {"h", "help"}
 			withHandler:
 				function(arg)
-					print("Help.")
+					[self showHelp]
+					os.exit(0)
 				end]
 				
 		[self addOptions: {"o", "output"}
@@ -252,9 +420,21 @@ local table_concat = table.concat
 				function(arg)
 					outputdir = arg
 					return 1
-				end]		
+				end]
 	end
 
+	- showHelp
+	do
+		local stderr = io.stderr
+		stderr:write("oldot ", VERSION, "\n")
+		stderr:write("Objective Lua documentation tool\n")
+		stderr:write("© 2009 David Given\n")
+		stderr:write("\n")
+		stderr:write("Syntax: oldot [<options>...] <inputfile.olua>...\n")
+		stderr:write("   --help       -h     display this message\n")
+		stderr:write("   --output X   -oX    specify output directory\n")
+	end
+	
 	- checkArguments
 	do
 		if not outputdir then
@@ -300,12 +480,40 @@ local table_concat = table.concat
 	
 @implementation Oldot (FileParsing) 
 	@statics
+		local currentChunk
 		local docChunk
+		local argChunk
+		local retChunk
 		local library
 		local category
 		
+		local function reset()
+			docChunk = {}
+			currentChunk = docChunk
+			argChunk = nil
+			retChunk = nil
+		end
+		
 		local function documentationline(line)
-			docChunk[#docChunk + 1] = line
+			local s, e, arg, rest = line:find("^@param%s+(%w+)%s+(.*)$")
+			if s then
+				if not argChunk then
+					argChunk = {}
+				end
+				
+				currentChunk = {}
+				argChunk[#argChunk+1] = {arg, currentChunk}
+				line = rest
+			end
+			
+			s, e, rest = line:find("^@return%s+(.*)$")
+			if s then
+				retChunk = {}
+				currentChunk = retChunk
+				line = rest
+			end
+			
+			currentChunk[#currentChunk + 1] = line
 		end
 		
 		local function moduleLine(m)
@@ -324,20 +532,20 @@ local table_concat = table.concat
 		
 		local function implementationWithSuperclassLine(subclass, superclass)
 			local doc = table_concat(docChunk, "\n")
-			docChunk = {}
+			reset()
 			
 			subclass = applymodule(subclass)
 			superclass = applymodule(superclass)
 			
 			local class = [self findClass: subclass]
 			[class setSuperclass: superclass]
-			category = [class findCategory: "(default)"]
+			category = [class findCategory: "-default-"]
 			[category setDocumentation: doc]
 		end
 		
 		local function implementationWithCategoryLine(subclass, categoryname)
 			local doc = table_concat(docChunk, "\n")
-			docChunk = {}
+			reset()
 			
 			subclass = applymodule(subclass)
 			
@@ -348,7 +556,19 @@ local table_concat = table.concat
 		
 		local function methodDefinitionLine(line)
 			local doc = table_concat(docChunk, "\n")
-			docChunk = {}
+			local ret = nil
+			if retChunk then
+			 	ret = table_concat(retChunk, "\n")
+			end
+			
+			local arg = nil
+			if argChunk then
+				arg = {}
+				for _, a in ipairs(argChunk) do
+					arg[#arg+1] = {a[1], table_concat(a[2], "\n")}
+				end
+			end
+			reset()
 			
 			local classmethod = false
 			if line:find("^%+") then
@@ -402,7 +622,7 @@ local table_concat = table.concat
 					selector[#selector+1] = t
 					args[#args+1] = gettoken()
 					t = gettoken()
-				until not t or (t == ",")
+				until not t or (t == ",") or (t == "do")
 			end
 
 			while (t == ",") do
@@ -421,7 +641,9 @@ local table_concat = table.concat
 			local method = [category findMethod: name]
 			[method setSelector: selector]
 			[method setArguments: args]
-			[method setDocumentation: doc]	
+			[method setArgumentDocumentation: arg]
+			[method setReturnDocumentation: ret]
+			[method setDocumentation: doc]
 		end
 		
 		local function processline(line)
@@ -488,7 +710,7 @@ local table_concat = table.concat
 			[self error: "unable to open input file %q", filename]
 		end
 		
-		docChunk = {}
+		reset()
 		library = nil
 		
 		for line in fp:lines() do
@@ -503,4 +725,5 @@ local table_concat = table.concat
 	end
 @end
 
-return [[[Oldot alloc] init] runWithArgs: {...}]
+OLDOT = [[Oldot alloc] init]
+return [OLDOT runWithArgs: {...}]

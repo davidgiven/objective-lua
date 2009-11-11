@@ -84,7 +84,7 @@ function loadstream(file, filename)
 end
 
 function run(filename, ...)
-	print("Running "..filename)
+	--print("Running "..filename)
 	local file = assert(io.open(filename, "rb"))
 	local chunk = assert(loadstream(file, filename))
 	file:close()
@@ -98,7 +98,7 @@ local function oluaload(modulename)
 		local filename = string.gsub(path, "%?", modulepath)
 		local file = io.open(filename, "rb")
 		if file then
-			print("Loading "..filename)
+			--print("Loading "..filename)
 			local chunk = assert(loadstream(file, filename))
 			file:close()
 			return chunk

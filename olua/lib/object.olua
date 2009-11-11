@@ -16,7 +16,6 @@ local metatable =
 		__unm = function(self) return [self operatorNegate: other] end,
 		__concat = function(self, other) return [self operatorConcatenate: other] end,
 		__len = function(self) return [self operatorLength] end,
-		__eq = function(self, other) return [self operatorEquals: other] end,
 		__lt = function(self, other) return [self operatorLessThan: other] end,
 		__le = function(self, other) return [self operatorLessThanOrEqualTo: other] end,
 		__index = function(self, key) return [self operatorIndex: key] end,

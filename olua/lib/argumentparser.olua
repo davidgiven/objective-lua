@@ -89,10 +89,27 @@ module("olua.lib", package.seeall)
 --- Thrown by the argument parser on an unrecognised command line option.
 
 @implementation UnrecognisedOptionException : ApplicationException
-	--- Initialise instance with a given unrecognised option.
+	@statics
+		local option
+	@end
 	
-	- initWithOption: option
+	--- Initialise instance with a given unrecognised option.
+	---
+	--- @param o             unrecognised option
+	--- @return              the receiver
+	
+	- initWithOption: o
 	do
-		return [super initWith: ("unrecognised option '"..option.."'")]
+		option = o
+		return [super initWith: ("unrecognised option '"..o.."'")]
 	end
+	
+	--- Return the option causing the error.
+	---
+	--- @return              the option
+	
+	- option
+	do
+		return option
+	end 
 @end

@@ -2,19 +2,19 @@ require 'olua'
 
 module("olua.lib", package.seeall)
 
---- The Application class represents a standalone application. It will parse
+--- I am the base class for all Objective Lua standalone applications. I parse
 --- command line arguments and acts as the basis for a more complex application
 --- lifecycle system (as needed by a GUI, for example).
 ---
---- To run an application, the only top-level code needed is:
+--- To run an application, the top-level code needed is:
 ---
----     return [[[ApplicationSubclass alloc] init] runWithArgs: {...}]
+---     return [[[YourApplicationSubclassHere alloc] init] runWithArgs: {...}]
 
 @implementation Application : Object
 	--- Initialises a new application instance.
 	---
-	--- Subclasses should override this and call `addArgumentHandler:for:` or
-	--- `addArgumentHandlers:` to add command-line option handlers.
+	--- Subclasses should override this and call @ref(addOption:withHandler:) or
+	--- @ref(addOptions:) to add command-line option handlers.
 	
 	- init
 	do
@@ -33,9 +33,10 @@ module("olua.lib", package.seeall)
 	
 	--- Runs the application.
 	---
-	--- The command line arguments are passed (see `parseArgs:`), and then
-	--- `run` is called. If an ApplicationError is thrown, it is reported
-	--- nicely to the user with `reportError:`. 
+	--- The command line arguments are passed (see
+	--- @ref(ArgumentParser>>parse:)), and then
+	--- @ref(run) is called. If an @ref(ApplicationException) is thrown, it is
+	--- reported nicely to the user with @ref(reportError:). 
 	
 	- runWithArgs: args
 	do
@@ -54,9 +55,9 @@ module("olua.lib", package.seeall)
 	
 	--- Abstract method containing the application logic.
 	---
-	--- This method is called by `runWithArgs:`. The default implementation
+	--- This method is called by @ref(runWithArgs:). The default implementation
 	--- does nothing; this should be overridden to contain the application
-	--- logic. On error, this method should throw ApplicationError.
+	--- logic. On error, this method should throw @ref(ApplicationException).
 	
 	- run
 	do
@@ -64,7 +65,7 @@ module("olua.lib", package.seeall)
 @end
 
 @implementation Application (ErrorHandling)
-	--- Throws a new instance of ApplicationException with the specified
+	--- Throws a new instance of @ref(ApplicationException) with the specified
 	--- message.
 	---
 	--- Arguments are formatted with string.format.
@@ -128,8 +129,9 @@ module("olua.lib", package.seeall)
 @end
 
 --- This exception is used to handle fatal errors from within an exception.
---- It is thrown from `run` (or `parseArgs:`) and will be caught automatically
---- and presented nicely to the user.
+--- It is thrown from @ref(Application>>run) (or
+--- @ref(ArgumentParser>>parse:)) and will be caught automatically and
+--- presented nicely to the user.
 
 @implementation ApplicationException : Exception
 	@statics

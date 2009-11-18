@@ -2,12 +2,37 @@ require 'olua'
 
 module("olua.lib", package.seeall)
 
+--- I am a utility class for parsing command line options.
+---
+--- I understand both short and long options, with any number of arguments
+--- (although your users may get confused if you use more than one). With a
+--- short option, I will automatically detect whether the argument is
+--- separated with a space or not.
+---
+--- I don't handle combined short options (`ls -lR`), or using `=` to separate
+--- the option from the argument.
+---
+--- To use me, instantiate me and then call one of the `addOption:` methods
+--- to add option handlers. When ready, call `parse:` with a preparsed command
+--- line. I will then call the handlers from left to right. Each handler
+--- should return the number of arguments consumed; typically 0 or 1.
+--- `parse:` will return a list of leftover command line arguments.
+---
+--- Unrecognised options are handled by throwing
+--- @ref(UnrecognisedOptionException).
+---
+--- You usually don't need to instantiate me directly; @ref(olua.lib.Application)
+--- will do it for you.
+ 
 @implementation ArgumentParser : Object
 	@statics
 		local handlertable = {}
 	@end
 	
 	--- Adds a handler to the parser.
+	---
+	--- @param option        the option (e.g. `"x"` or `"extra"`)
+	--- @param handler       the handler
 	
 	- addOption: option withHandler: handler
 	do
@@ -15,6 +40,9 @@ module("olua.lib", package.seeall)
 	end
 	
 	--- Adds several options with the same handler.
+	--- 
+	--- @param option        an array of options (e.g. `{"x", "extra"}`)
+	--- @param handler       the handler
 	
 	- addOptions: options withHandler: handler
 	do
@@ -24,6 +52,8 @@ module("olua.lib", package.seeall)
 	end
 	 
 	--- Adds a table of handlers to the parser.
+	--- 
+	--- @param options       the option table (e.g. `{x = function()...end}`)
 	
 	- addOptions: options
 	do
@@ -35,7 +65,10 @@ module("olua.lib", package.seeall)
 	--- Parses a set of command line options.
 	---
 	--- The options are processed left to right. All option handlers are
-	--- executed. The unprocessed arguments are returned.
+	--- executed. The unprocessed arguments are returned. Unrecognised options
+	--- are handled by throwing `olua.lib.UnrecognisedOptionError`.
+	---
+	--- @return              any unprocessed arguments
 	
 	- parse: args
 	do
@@ -84,7 +117,6 @@ module("olua.lib", package.seeall)
 		return files
 	end
 @end
-
 
 --- Thrown by the argument parser on an unrecognised command line option.
 

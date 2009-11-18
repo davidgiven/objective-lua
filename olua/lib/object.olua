@@ -25,9 +25,17 @@ local metatable =
 	}
 		
 @implementation Object (BaseMethods)
-	-- Create a new object.
+	--- Create a new object.
+	---
+	--- This method creates an instance of the class. Any code in the class'
+	--- statics blocks will be run, but no constructor methods will be.
+	--- Normally an `init` method will then be called on the new returned
+	--- object.
+	---
+	--- @return              the new object
 
-	+ alloc do
+	+ alloc
+	do
 		local class = self
 		local superclass = [class superclass]
 		
@@ -81,21 +89,67 @@ local metatable =
 		return object
 	end
 	
-	+ toString do
+	--- Returns a string representing this class.
+	---
+	--- By default, this is `[classname class@hashcode]` where `classname` is
+	--- the name of the class and `hashcode` is a unique id. 
+	---
+	--- @return              the string identifier
+	
+	+ toString
+	do
 		return "["..[self name].." class@"..[self hash].."]"
 	end
 @end
 
 @implementation Object (BaseMethods)
-	- init do
+	--- Initialises a new instance of the object.
+	---
+	--- All constructors must, eventually, call this.
+	---
+	--- @return              the receiver
+	
+	- init
+	do
 		return self
 	end
 
-	- toString do
+	--- Returns a string representing this class.
+	---
+	--- By default, this is `[classname@hashcode]` where `classname` is
+	--- the name of the object's class and `hashcode` is a unique id. 
+	---
+	--- @return              the string identifier
+	
+	- toString
+	do
 		return "["..[[self class] name].."@"..[self hash].."]"
 	end
-		
-	- isKindOfClass: class do
+	
+	--- Called on .. operator.
+	---
+	--- By default, this method performs:
+	---
+	---     return tostring(self) .. tostring(other)
+	---
+	--- @param other         the second operator argument
+	--- @return              the result
+	
+	- operatorConcatenate: other
+	do
+		return tostring(self) .. tostring(other)
+	end 
+
+	--- Tests whether this object inherits from a particular class.
+	---
+	--- This method returns true if the object is an instance of `class`, or
+	--- of any subclass inheriting from `class`.
+	---
+	--- @param class         the class to test against
+	--- @return              `true` or `false`
+	
+	- isKindOfClass: class
+	do
 		if not class then
 			@throw [[InvalidArgumentException alloc] initWith:
 				"class argument cannot be nil"]
@@ -119,21 +173,55 @@ local metatable =
 		return false 
 	end
 	
-	- respondsToSelector: selector do
+	--- Tests whether this object responds to a particular selector.
+	---
+	--- Any class which overrides @ref(forwardInvocation:) to do special
+	--- behaviour should override this.
+	---
+	--- @param selector      the (mangled) selector
+	--- @return              `true` or `false`
+	
+	- respondsToSelector: selector
+	do
 		if self[selector] then
 			return true
 		end
 		return false
 	end
 	
-	- isProxy do
+	--- Indicates whether this object is a proxy.
+	---
+	--- Proxies forward their methods on elsewhere; this method can be used
+	--- to test for this (so that we know not to trust the class hierarchy,
+	--- for example).
+	---
+	--- @return              `true` or `false`
+	
+	- isProxy
+	do
 		return false
 	end
 	
+	--- Call a method on the object.
+	---
+	--- The given no-argument selector is called on the object.
+	---
+	--- @param selector      the (mangled) selector
+	--- @return              whatever the method returns
+	 
 	- performSelector: selector do
 		return [self performSelector: selector withArgs: {}]
 	end
 	
+	--- Call a method on the object.
+	---
+	--- The given selector is called on the object using the supplied
+	--- arguments.
+	---
+	--- @param selector      the (mangled) selector
+	--- @param args          an array of arguments
+	--- @return              whatever the method returns
+	 
 	- performSelector: selector withArgs: args do
 		return self[selector](self, unpack(args))
 	end
@@ -150,7 +238,56 @@ local metatable =
 		end
 	end
 	
+	--- Called when an unrecognised message is sent to this object.
+	---
+	--- If a message is sent to the object, and there are no methods that
+	--- implement it, the runtime will pass the message to this method.
+	--- The object may then do whatever it wishes with it. The default
+	--- behaviour is to throw a @ref(UnhandledMessageException); if the method
+	--- instead returns, the return value will be returned from the original
+	--- method.
+	---
+	--- @param message       the unrecognised message
+	--- @return              whatever the message should return
+	 
 	- forwardInvocation: message do
 		@throw [[UnhandledMessageException alloc] initWith: message]
+	end
+@end
+
+-- ----------------------------------------------------------------------- --
+--                              END OF FILE                                --
+-- ----------------------------------------------------------------------- --
+
+do return end
+
+-- The above line causes execution to stop here! The rest of the file exists
+-- solely for the purpose of generating documentation.
+
+@implementation Object (SpecialMethods)
+	--- Returns a hash code for the object.
+	---
+	--- The hash code is a unique integer identifying the object. It is
+	--- guaranteed never to be reused. Note that the hash code is not the same
+	--- as the Lua internal hash.
+	---
+	--- @return              the hash code
+	
+	- hash
+	do
+	end
+@end
+
+@implementation Object (SpecialStaticMethods)
+	--- Returns a hash code for the class.
+	---
+	--- The hash code is a unique integer identifying the class. It is
+	--- guaranteed never to be reused. Note that the hash code is not the same
+	--- as the Lua internal hash.
+	---
+	--- @return              the hash code
+	
+	+ hash
+	do
 	end
 @end

@@ -1,5 +1,6 @@
 require 'olua'
 require 'olua.lib'
+require 'olua.lexer'
 require 'markdown'
 local table_concat = table.concat 
 
@@ -11,6 +12,7 @@ local OLDOT
 
 @implementation OldotMethod : olua.lib.Object
 	@statics
+		local class = nil
 		local name = ""
 		local selector = ""
 		local arguments = {}
@@ -18,6 +20,16 @@ local OLDOT
 		local argumentDocumentation = nil
 		local returnDocumentation = nil
 	@end
+	
+	- setClass: c
+	do
+		class = c
+	end
+	
+	- getClass
+	do
+		return class
+	end
 	
 	- setName: s
 	do
@@ -69,14 +81,10 @@ local OLDOT
 		return documentation
 	end
 	
-	- emitTo: stream
+	- emitPrettyNameTo: s
 	do
-		stream[#stream+1] = "### <a name='"..name.."'>"..name.."</a>"			
-		stream[#stream+1] = documentation
-		
-		local s = {}
 		if (#arguments == 0) then
-			s[#s+1] = "<code>"..selector[1].."</code>"
+			s[#s+1] = "<code><b>"..selector[1].."</b></code>"
 		else
 			for i = 1, #arguments do
 				local se = selector[i]
@@ -84,7 +92,12 @@ local OLDOT
 				
 				s[#s+1] = "<code>"
 				if se then
+					if (i > 1) then
+						s[#s+1] = " "
+					end
+					s[#s+1] = "<b>"
 					s[#s+1] = se
+					s[#s+1] = "</b>"
 				end
 				if not se or (se:sub(-1) ~= ":") then
 					s[#s+1] = ","
@@ -96,30 +109,46 @@ local OLDOT
 				s[#s+1] = "</i>"
 			end
 		end
+	end
+	
+	- emitDetailTo: stream
+	do
+		stream[#stream+1] = "<h3><a name='"
+		stream[#stream+1] = name
+		stream[#stream+1] = "'>"
+		stream[#stream+1] = name:sub(1, 1)
+		stream[#stream+1] = " "
+		[self emitPrettyNameTo: stream]
+		stream[#stream+1] = "</a></h3><dl>"
+						
+		stream[#stream+1] = "<dd><p>"
+		[class emitTo: stream documentation: documentation]
 		
-		stream[#stream+1] = "#### "..table_concat(s)
-		
+		stream[#stream+1] = "</p><dl>"
 		if argumentDocumentation then
-			stream[#stream+1] = "#### Parameters:"
+			stream[#stream+1] = "<dt><b>Parameters:</b></dt><dd>"
 			
-			stream[#stream+1] = "<dl>"
 			for _, a in ipairs(argumentDocumentation) do
-				stream[#stream+1] = "<dt><i>"
+				stream[#stream+1] = "<code>"
 				stream[#stream+1] = a[1]
-				stream[#stream+1] = "</i></dt>"
+				stream[#stream+1] = "</code> - "
 				
-				stream[#stream+1] = "<dd>"
-				stream[#stream+1] = a[2]
-				stream[#stream+1] = "</dd>"
+				[class emitTo: stream documentation: a[2]]
+				stream[#stream+1] = "<br>"
 			end
-			stream[#stream+1] = "</dl>"
+			stream[#stream+1] = "</dd>"
 		end
 				 
 		if returnDocumentation then
-			stream[#stream+1] = "#### Returning:"
-			stream[#stream+1] = returnDocumentation
+			stream[#stream+1] = "<dt><b>Returns:</b></dt><dd>"
+			
+			[class emitTo: stream documentation: returnDocumentation]
+
+			stream[#stream+1] = "</dd>"
 		end
+		stream[#stream+1] = "</dl>"
 				 
+		stream[#stream+1] = "</dd></dl>"
 	end
 @end
 
@@ -127,28 +156,44 @@ local OLDOT
 
 @implementation OldotCategory : olua.lib.Object
 	@statics	
+		local class = nil
 		local name = ""
 		local documentation = ""
 		local methods = {}
 	@end
 	
-	- setName: s do
+	- setClass: c
+	do
+		class = c
+	end
+	
+	- getClass
+	do
+		return class
+	end
+	
+	- setName: s
+	do
 		name = s
 	end
 	
-	- name do
+	- name
+	do
 		return name
 	end
 	
-	- setDocumentation: s do
+	- setDocumentation: s
+	do
 		documentation = s
 	end
 	
-	- documentation do
+	- documentation
+	do
 		return documentation
 	end
 	
-	- findMethod: name do
+	- findMethod: name
+	do
 		local method = methods[name]
 		if not method then
 			method = [[OldotMethod alloc] init]
@@ -184,8 +229,8 @@ local OLDOT
 
 @implementation OldotClass : olua.lib.Object
 	@statics
-		local library = ""
-		local name = ""
+		local library = nil
+		local name = nil
 		local superclass = nil
 		local categories = {}
 	@end
@@ -235,6 +280,200 @@ local OLDOT
 		return c
 	end
 
+	- collectMethodsMatching: pattern
+	do
+		local methods = {}
+		
+		for _, categoryname in ipairs([self categories]) do
+			local category = [self findCategory: categoryname]
+			for _, methodname in ipairs([category methods]) do
+				if methodname:find(pattern) then
+					methods[#methods+1] = {
+						name=methodname,
+						method=[category findMethod: methodname]
+					}
+				end
+			end 
+		end
+		table.sort(methods,
+			function(m1, m2)
+				return m1.name < m2.name
+			end)
+			
+		return methods
+	end
+	
+	- emitTableHeaderTo: stream withName: name andAnchor: anchor
+	do
+		stream[#stream+1] = "<a name='"
+		stream[#stream+1] = anchor
+		stream[#stream+1] = "'></a><table border='1' width='100%' cellpadding='3' cellspacing='0' summary=''>"
+		stream[#stream+1] = "<tr bgcolor='#ccccff' class='TableHeadingColor'>"
+		stream[#stream+1] = "<th align='left'><font size='+2'>"
+		stream[#stream+1] = "<b>"
+		stream[#stream+1] = name
+		stream[#stream+1] = "</b></font></th></tr>"
+	end
+	
+	- emitTableFooterTo: stream
+	do		
+		stream[#stream+1] = "</table>"		
+	end
+	
+	- emitMethodSummaryTo: stream containing: methods withName: name andAnchor: anchor
+	do
+		if (#methods == 0) then
+			return
+		end
+		
+		[self emitTableHeaderTo: stream withName: name andAnchor: anchor]
+			
+		stream[#stream+1] = "<tr><td><dl>"
+		for _, m in ipairs(methods) do
+			stream[#stream+1] = "<dt><a href='#"
+			stream[#stream+1] = m.name
+			stream[#stream+1] = "'>"
+			stream[#stream+1] = m.name:sub(1, 1)
+			stream[#stream+1] = " "
+			[m.method emitPrettyNameTo: stream]
+			stream[#stream+1] = "</a></dt><dd>"
+			
+			local doc = [m.method documentation]
+			if doc then
+				local i = doc:find("\n\n")
+				doc = doc:sub(1, i)
+			end
+			
+			[self emitTo: stream documentation: doc]
+			stream[#stream+1] = "</dd>"
+		end
+		stream[#stream+1] = "</dl></td></tr>"
+		 
+		[self emitTableFooterTo: stream]
+	end
+	
+	- emitMethodDetailTo: stream containing: methods withName: name andAnchor: anchor
+	do
+		if (#methods == 0) then
+			return
+		end
+		
+		[self emitTableHeaderTo: stream withName: name andAnchor: anchor]
+		[self emitTableFooterTo: stream]
+		
+		for _, m in ipairs(methods) do
+			[m.method emitDetailTo: stream]
+		end
+	end
+	
+	- emitTo: stream documentation: documentation
+	do
+		local function guessclass(s)
+			local c = [OLDOT findClass: s]
+			if not c then
+				s = library .. "." .. s
+				c = [OLDOT findClass: s]
+			end
+			return c
+		end
+		
+		local function guessmethod(class, s)
+			if not s:find("^[-+]") then
+				s = "-"..s
+			end
+			
+			if not class then
+				class = self
+			end
+			local m = [class collectMethodsMatching: ("^"..s.."$")]
+			if (#m > 0) then
+				return m[1]
+			end
+			return nil
+		end
+		
+		local function abort(pattern)
+			@throw [[OldotUnknownRefException alloc] initWith: pattern
+				inClass: self]
+		end
+		
+		local s = markdown(documentation)
+			:gsub("^%s*<p>", "")
+			:gsub("</p>%s*$", "")
+			:gsub("@ref%(([^)]+)%)",
+				function(pattern)
+					-- Is the pattern fully qualified?
+					
+					local _, _, c, m = pattern:find("^(.*)>>(.*)$")
+					if c then
+						-- Assume the method is an object method if not
+						-- otherwise specified.
+						
+						if not m:find("^[-+]") then
+							m = "-"..m
+						end
+						
+						local class = guessclass(c)
+						if not class then
+							abort(pattern)
+						end
+						local method = guessmethod(class, m)
+						if not method then
+							abort(pattern)
+						end
+
+						return "<code><a href='"..
+							[class name]..".html#"..method.name.."'>"..
+							[class name].."&gt;&gt;"..method.name.."</a></code>"
+					end
+					
+					-- We have a bare name. Try to guess what it is.
+					
+					local isclassname = true
+					local ismethodname = true
+					
+					if pattern:find("%.") then
+						ismethodname = false
+					end
+					if pattern:find("%:") then
+						isclassname = false
+					end
+					if pattern:find("^[-+]") then
+						isclassname = false
+					end
+					
+					-- Check to see if it's a method we know about.
+					
+					if ismethodname then
+						local m = guessmethod(self, pattern)
+						if m then
+							return "<code><a href='#"..
+								m.name.."'>"..m.name.."</a></code>"
+						end
+					end
+					
+					-- Check to see if it's a class.
+					
+					if isclassname then
+						local c = guessclass(pattern)
+						
+						if c then
+							local s = [c name]
+							return "<code><a href='"..
+								s..".html'>"..s.."</a></code>"
+						end
+					end
+					
+					-- Don't know what it is.
+
+					@throw [[OldotUnknownRefException alloc] initWith: pattern
+						inClass: self]
+				end
+			)
+		
+		stream[#stream+1] = s
+	end
+	
 	- emitTo: stream
 	do
 		local _, _, library, name = [self name]:find("^([%w%.]+)%.(%w*)$")
@@ -294,50 +533,35 @@ local OLDOT
 			stream[#stream+1] = table_concat(s)
 		end
 		
-		stream[#stream+1] = "<hr/>"
+		stream[#stream+1] = "<hr>"
 		
 		local defaultCategory = [self findCategory: "-default-"]
 		if defaultCategory then
-			stream[#stream+1] = markdown([defaultCategory documentation])
+			[self emitTo: stream documentation: [defaultCategory documentation]]
 		end
 		
-		stream[#stream+1] = "<hr/>"
+		stream[#stream+1] = "<hr>"
 		
-		local allmethods = {}
-		for _, categoryname in ipairs([self categories]) do
-			local category = [self findCategory: categoryname]
-			for _, methodname in ipairs([category methods]) do
-				allmethods[#allmethods+1] = {
-					name=methodname,
-					method=[category findMethod: methodname]
-				}
-			end 
-		end
-		table.sort(allmethods,
-			function(m1, m2)
-				return m1.name < m2.name
-			end)
-
-		stream[#stream+1] = "<dl class='methodlist'>"
-		for _, m in ipairs(allmethods) do
-			stream[#stream+1] = "<dt><a href='#"
-			stream[#stream+1] = m.name
-			stream[#stream+1] = "'>"
-			stream[#stream+1] = m.name
-			stream[#stream+1] = "</a></dt>"
+		[self emitMethodSummaryTo: stream
+			containing: [self collectMethodsMatching: "^%+"]
+			withName: "Static Method Summary"
+			andAnchor: "static_method_summary"]
+		
+		[self emitMethodSummaryTo: stream
+			containing: [self collectMethodsMatching: "^%-init"]
+			withName: "Constructor Summary"
+			andAnchor: "constructor_summary"]
+		
+		[self emitMethodSummaryTo: stream
+			containing: [self collectMethodsMatching: "^%-[^i][^n][^i][^t]"]
+			withName: "Method Summary"
+			andAnchor: "method_summary"]
+		
+		[self emitMethodDetailTo: stream
+			containing: [self collectMethodsMatching: ""]
+			withName: "Method Detail"
+			andAnchor: "method_detail"]
 			
-			local doc = [m.method documentation]
-			if doc then
-				local i = doc:find("\n\n")
-				doc = doc:sub(1, i)
-			end
-			if doc then
-				stream[#stream+1] = "<dd>"
-				stream[#stream+1] = markdown(doc)
-				stream[#stream+1] = "</dd>"
-			end
-		end
-		stream[#stream+1] = "</dl>"		
 	end
 @end
 
@@ -458,7 +682,13 @@ local OLDOT
 		local classes = {}
 	@end
 	
-	- findClass: classname do
+	- findClass: classname
+	do
+		return classes[classname]
+	end
+	
+	- findOrCreateClass: classname
+	do
 		local class = classes[classname]
 		if not class then
 			class = [[OldotClass alloc] init]
@@ -480,12 +710,94 @@ local OLDOT
 	
 @implementation Oldot (FileParsing) 
 	@statics
+		local filename
+		local doctokens
+		local pos
 		local currentChunk
 		local docChunk
 		local argChunk
 		local retChunk
 		local library
 		local category
+
+		local function getdoctokens(s)
+			local rawtokens = olua.lexer:getrawtokens(s)
+			local doctokens = {}
+			
+			local newline = true
+			for _, t in ipairs(rawtokens) do
+				local type = t[1]
+				if (type ~= "whitespace") then
+					local dt = {}
+					dt.text = t[2]
+					dt.line = t[3]
+					dt.newline = newline
+					doctokens[#doctokens+1] = dt
+					
+					newline = false
+				end
+				
+				if t[2]:find("\n%s*$") then
+					newline = true
+				end 
+			end
+			
+			return doctokens
+		end
+		
+		local function expect(s)
+			local t = doctokens[pos]
+			if not t or (t.text ~= s) then
+				local linenumber
+				if t then
+					linenumber = t.line
+				end
+				
+				@throw [[OldotFileSyntaxError alloc] initWithFilename: filename
+					andLine: linenumber] 
+			end
+			
+			pos = pos + 1
+		end
+		
+		local function readstring()
+			local t = doctokens[pos]
+			pos = pos + 1
+			
+			if not t then
+				@throw [[OldotFileSyntaxError alloc] initWithFilename: filename
+					andLine: nil]
+			end
+			
+			return t.text
+		end
+		 
+		local function readdotted()
+			local st = {}
+			
+			while true do
+				local s = doctokens[pos]
+				if not s then
+					break
+				end
+				
+				st[#st+1] = s.text
+				pos = pos + 1
+				
+				s = doctokens[pos]
+				if not s then
+					break
+				end
+				if (s.text ~= ".") then
+					break
+				end
+				
+				st[#st+1] = s.text
+				pos = pos + 1
+			end
+			
+			return table_concat(st)
+		end
 		
 		local function reset()
 			docChunk = {}
@@ -516,7 +828,7 @@ local OLDOT
 			currentChunk[#currentChunk + 1] = line
 		end
 		
-		local function moduleLine(m)
+		local function doModule(m)
 			library = m
 		end
 		
@@ -530,31 +842,35 @@ local OLDOT
 			return s
 		end
 		
-		local function implementationWithSuperclassLine(subclass, superclass)
+		local function doImplementationWithSuperclass(subclass, superclass)
 			local doc = table_concat(docChunk, "\n")
 			reset()
 			
 			subclass = applymodule(subclass)
 			superclass = applymodule(superclass)
 			
-			local class = [self findClass: subclass]
+			local class = [self findOrCreateClass: subclass]
+			[class setLibrary: library]
 			[class setSuperclass: superclass]
 			category = [class findCategory: "-default-"]
+			[category setClass: class]
 			[category setDocumentation: doc]
 		end
 		
-		local function implementationWithCategoryLine(subclass, categoryname)
+		local function doImplementationWithCategory(subclass, categoryname)
 			local doc = table_concat(docChunk, "\n")
 			reset()
 			
 			subclass = applymodule(subclass)
 			
-			local class = [self findClass: subclass]
+			local class = [self findOrCreateClass: subclass]
+			[class setLibrary: library]
 			category = [class findCategory: categoryname]
+			[category setClass: class]
 			[category setDocumentation: doc]
 		end
 		
-		local function methodDefinitionLine(line)
+		local function doMethodDefinition()
 			local doc = table_concat(docChunk, "\n")
 			local ret = nil
 			if retChunk then
@@ -570,64 +886,31 @@ local OLDOT
 			end
 			reset()
 			
-			local classmethod = false
-			if line:find("^%+") then
-				classmethod = true
-			end
+			local classmethod = (doctokens[pos].text == "+")
+			pos = pos + 1
 			
-			local i = 2
-			local function gettoken()
-				local s, e, c
-				-- skip whitespace
-				
-				s, e = line:find("^%s+", i)
-				if s then
-					i = e + 1
-				end
-				
-				if (i > #line) then
-					return nil
-				end
-				 
-				s, e, c = line:find("^(%w+:?)", i)
-				if s then
-					i = e + 1
-					return c
-				end
-				
-				s, e, c = line:find("^,", i)
-				if s then
-					i = e + 1
-					return ","
-				end
-				
-				s, e, c = line:find("^%.%.%.", i)
-				if s then
-					i = e + 1
-					return "..."
-				end
-				
-				return nil
-			end
-
 			local selector = {}
 			local args = {}
 			
-			local t = gettoken()
-			if not t:find(":$") then
-				selector[#selector+1] = t
-				t = gettoken()
-			else
-				repeat
-					selector[#selector+1] = t
-					args[#args+1] = gettoken()
-					t = gettoken()
-				until not t or (t == ",") or (t == "do")
+			local t = readstring()
+			selector[1] = t
+			t = readstring()
+			if (t == ":") then
+				selector[1] = selector[1] .. ":"
+				while true do
+					args[#args+1] = readstring()
+					t = readstring()
+					if (t == ",") or (t == "do") then
+						break
+					end
+					selector[#selector+1] = t .. ":"
+					expect(":")
+				end
 			end
-
+				
 			while (t == ",") do
-				args[#args+1] = gettoken()
-				t = gettoken()
+				args[#args+1] = readstring()
+				t = readstring()
 			end
 		
 			local name = table_concat(selector)
@@ -639,6 +922,7 @@ local OLDOT
 				name = "-"..name
 			end
 			local method = [category findMethod: name]
+			[method setClass: [category getClass]]
 			[method setSelector: selector]
 			[method setArguments: args]
 			[method setArgumentDocumentation: arg]
@@ -646,75 +930,90 @@ local OLDOT
 			[method setDocumentation: doc]
 		end
 		
-		local function processline(line)
-			-- Strip spaces.
-			
-			line = line:gsub("^%s*", "")
-			line = line:gsub("%s*$", "")
-
+		local function process()
+			local token = doctokens[pos]
+			local text = token.text
+						
 			-- Documentation chunk?
 			
-			local e, _, m = line:find(
+			local e, _, m = text:find(
 				"^%-%-%-%s(.*)$")
 			if e then
+				pos = pos + 1
 				documentationline(m)
 				return
 			end
 			
 			-- Empty line in a documentation chunk?
 
-			local e, _, m = line:find(
+			local e, _, m = text:find(
 				"^%-%-%-$")
 			if e then
+				pos = pos + 1
 				documentationline("")
 				return
 			end
-						
-			-- module("...", ...?
-
-			local e, _, m = line:find(
-				"^module%([\"']([%w.]+)[\"']")
-			if e then
-				moduleLine(m)
+			
+			if (text == "@implementation") then
+				local subclass
+				
+				pos = pos + 1
+				subclass = readdotted()
+				
+				if doctokens[pos] and (doctokens[pos].text == ":") then
+					expect(":")
+					local superclass = readdotted()
+					doImplementationWithSuperclass(subclass, superclass)
+				else
+					expect("(")
+					doImplementationWithCategory(subclass, readstring())
+				end
+				return
 			end
 			
-			-- @interface Subclass : Superclass?
+			-- These are recognised only at the start of a line.
 			
-			local e, _, subclass, superclass = line:find(
-				"^@implementation%s+([%w.]+)%s*:%s*([%w.]+)$")
-			if e then
-				implementationWithSuperclassLine(subclass, superclass)
+			if token.newline then
+				if (text == "module") then
+					pos = pos + 1
+					expect("(")
+					local libname = readstring()
+					
+					if libname then
+						libname = libname:gsub('"', "")
+						doModule(libname)
+					end
+					return
+				end
+				
+				if (text == "-") or (text == "+") then
+					doMethodDefinition()
+					return
+				end
 			end
 			
-			-- @interface Subclass (Category)?
+			-- Anything else ignore.
 			
-			local e, _, subclass, category = line:find(
-				"^@implementation%s+([%w.]+)%s*%(([%w.]+)%)$")
-			if e then
-				implementationWithCategoryLine(subclass, category)
-			end
-			
-			-- [+-] selector...?
-			
-			local e, _ = line:find(
-				"^[-+]%s+")
-			if e then
-				methodDefinitionLine(line)
-			end
+			pos = pos + 1
 		end
 	@end
 	
-	- parse: filename do
+	- parse: f
+	do
+		filename = f
+		
 		local fp = io.open(filename)
 		if not fp then
 			[self error: "unable to open input file %q", filename]
 		end
 		
 		reset()
-		library = nil
+		library = nil		
+		doctokens = getdoctokens(fp:read("*a"))
 		
-		for line in fp:lines() do
-			processline(line)
+		pos = 1
+		while (pos <= #doctokens) do
+			process()
 		end
 		
 		if (#docChunk > 0) then
@@ -722,6 +1021,27 @@ local OLDOT
 		end
 		
 		fp:close()
+	end
+@end
+
+@implementation OldotUnknownRefException : olua.lib.ApplicationException
+	@statics
+		local ref
+		local class
+	@end
+	
+	- initWith: r inClass: c
+	do
+		[super init]
+		ref = r
+		class = c
+		return self
+	end
+	
+	- toString
+	do
+		return "unable to resolve reference '"..ref.."' in class '"..
+			[class name].."'"
 	end
 @end
 

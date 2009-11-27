@@ -1,5 +1,6 @@
 require 'olua'
 require 'olua.lib'
+require 'olua.app'
 require 'olua.lexer'
 require 'markdown'
 local table_concat = table.concat 
@@ -377,11 +378,7 @@ local OLDOT
 			return c
 		end
 		
-		local function guessmethod(class, s)
-			if not s:find("^[-+]") then
-				s = "-"..s
-			end
-			
+		local function findmethod(class, s)
 			if not class then
 				class = self
 			end
@@ -390,6 +387,20 @@ local OLDOT
 				return m[1]
 			end
 			return nil
+		end
+		
+		local function guessmethod(class, s)
+			local m
+			if not s:find("^[-+]") then
+				m = findmethod(class, "%-"..s)
+				if not m then
+					m = findmethod(class, "%+"..s)
+				end
+			else
+				m = findmethod(class, s)
+			end
+
+			return m
 		end
 		
 		local function abort(pattern)
@@ -568,7 +579,7 @@ local OLDOT
 
 --- Main application class.
 
-@implementation Oldot : olua.lib.Application
+@implementation Oldot : olua.app.Application
 	@statics
 		local stderr = io.stderr
 	@end
@@ -1156,7 +1167,7 @@ local OLDOT
 	end
 @end
 
-@implementation OldotUnknownRefException : olua.lib.ApplicationException
+@implementation OldotUnknownRefException : olua.app.ApplicationException
 	@statics
 		local ref
 		local class

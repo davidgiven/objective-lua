@@ -569,6 +569,10 @@ local OLDOT
 --- Main application class.
 
 @implementation Oldot : olua.lib.Application
+	@statics
+		local stderr = io.stderr
+	@end
+	
 	- init
 	do
 		[super init]
@@ -581,27 +585,8 @@ local OLDOT
 		return "oldot"
 	end
 	
-	- run
+	- writeClassDocumentation
 	do
-		[self checkArguments]
-		
-		local files = [self remainingArguments]
-		if (#files == 0) then
-			[self error: "you must specify at least one input file"]
-		end
-		
-		local stderr = io.stderr
-		stderr:write("Reading: ")
-		stderr:flush()
-		for _, filename in ipairs(files) do
-			[self parse: filename]
-			stderr:write(".")
-			stderr:flush()
-		end
-		
-		local fp = io.stdout
-		stderr:write("\nWriting: ")
-		stderr:flush()
 		for _, classname in ipairs([self classes]) do
 			local class = [self findClass: classname]
 
@@ -614,20 +599,154 @@ local OLDOT
 			stream[#stream+1] = "</body></html>"
 			
 			local filename = classname..".html"
-			fp = [self openOutputFile: filename]
+			local fp = [self openOutputFile: filename]
 			fp:write(table_concat(stream))
 			fp:close()
 			
 			stderr:write(".")
 			stderr:flush()
 		end
+	end
+	
+	- run
+	do
+		[self checkArguments]
+		
+		local files = [self remainingArguments]
+		if (#files == 0) then
+			[self error: "you must specify at least one input file"]
+		end
+		
+		stderr:write("Reading: ")
+		stderr:flush()
+		for _, filename in ipairs(files) do
+			[self parse: filename]
+			stderr:write(".")
+			stderr:flush()
+		end
+		
+		local fp = io.stdout
+		stderr:write("\nWriting: ")
+		stderr:flush()
+		[self writeClassDocumentation]
+		[self writeIndices]
 		stderr:write("\n")
+	end
+@end
+
+@implementation Oldot (IndexGeneration)
+	@statics
+		local stderr = io.stderr
+	@end
+	
+	- writeFrameHeader
+	do
+		local fp = [self openOutputFile: "index.html"]
+		fp:write(
+				"<html><head>",
+				"<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>",
+				"<title>", [self title], "</title></head>",
+				"<frameset cols='20%,80%' title=''>",
+				"<frameset rows='30%,70%' title=''>",
+				"<frame src='overview-frame.html' name='packageListFrame' title='All Packages'>",
+				"<frame src='allclasses-frame.html' name='packageFrame' title='All classes'>",
+				"</frameset>",
+				"<frame src='overview-summary.html' name='classFrame' title='Description' scrolling='yes'>",
+				"<noframes>",
+				"<h2>Frame alert</h2>",
+				"<p>This document is designed to be viewed using the frames feature. If you see this message, ",
+				"you are using a non-frame-capable web client.",
+				"<br>Link to <a href='overview-summary.html'>non-frame version</a>.",
+				"</noframes>",
+				"</frameset>",
+				"</html>")
+		fp:close()
+		stderr:write(".")
+		stderr:flush()
+	end
+
+	- writePackageList: list
+	do
+		local fp = [self openOutputFile: "overview-frame.html"]
+		fp:write(
+				"<html><head>",
+				"<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>",
+				"<title>Overview</title></head>",
+				"<body><h3>", [self title], "</h3>")
+		
+		for _, p in ipairs(list) do
+			fp:write("<a href='", p, ".html' target='packageFrame'>", p, "</a><br>")
+		end
+		
+		fp:write("</body></html>")
+		fp:close()
+	end
+	
+	- writeClassList: list to: filename withTitle: title
+	do
+		local fp = [self openOutputFile: filename]
+		fp:write(
+				"<html><head>",
+				"<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>",
+				"<title>Classes in ", title, "</title></head>",
+				"<body><h3>", title, "</h3>")
+		
+		for _, class in ipairs(list) do
+			local _, _, shortname = [class name]:find("([^.]*)$")
+			fp:write("<a href='", [class name]..".html", "' target='classFrame'>",
+				shortname, "</a><br>")
+		end
+		
+		fp:write("</body></html>")
+		fp:close()
+	end
+	
+	- writeIndices
+	do
+		[self writeFrameHeader]
+		
+		-- Collect all the packages and what class is in what.
+		
+		local packages = {}
+		for _, classname in ipairs([self classes]) do
+			local _, _, p, c = classname:find("^(.*)%.([^.]*)$")
+			if not p then
+				p = "(default package)"
+			end
+
+			local pc = packages[p]
+			if not pc then
+				pc = {}
+				packages[p] = pc
+			end
+			pc[#pc+1] = [self findClass: classname]
+		end
+		
+		-- Write out the list of packages.
+		
+		local packagelist = {}
+		for p, _ in pairs(packages) do
+			packagelist[#packagelist+1] = p
+		end
+		table.sort(packagelist)
+		[self writePackageList: packagelist]
+		
+		-- Now write out the class list for each package.
+		
+		for package, pl in pairs(packages) do
+			table.sort(pl,
+				function(o1, o2)
+					return [o1 name] < [o2 name]
+				end)
+			[self writeClassList: pl to: package..".html" withTitle: package]
+		end 
 	end
 @end
 
 @implementation Oldot (UserInterface)
 	@statics
 		local outputdir
+		local title = "Objective Lua Documentation"
 	@end
 	
 	- initUi
@@ -645,6 +764,13 @@ local OLDOT
 					outputdir = arg
 					return 1
 				end]
+				
+		[self addOptions: {"t", "title"}
+			withHandler:
+				function(arg)
+					title = arg
+					return 1
+				end]
 	end
 
 	- showHelp
@@ -657,6 +783,7 @@ local OLDOT
 		stderr:write("Syntax: oldot [<options>...] <inputfile.olua>...\n")
 		stderr:write("   --help       -h     display this message\n")
 		stderr:write("   --output X   -oX    specify output directory\n")
+		stderr:write("   --title X    -tX    specify overall title\n")
 	end
 	
 	- checkArguments
@@ -674,6 +801,11 @@ local OLDOT
 			[self error: "Unable to open output file %q: %s", filename, e]
 		end
 		return fp
+	end
+	
+	- title
+	do
+		return title
 	end
 @end
 

@@ -228,6 +228,17 @@ local metatable =
 @end
 
 @implementation Object (UnrecognisedSelectors)
+	--- Called when an recognised table key is accessed on the object.
+	---
+	--- Don't override this unless you really know what you're doing; the
+	--- default implementation in @ref(Object) is required to make
+	--- @ref(forwardInvocation:) and @ref(UnhandledMessageException) work.
+	--- For most purposes, overriding @ref(forwardInvocation:) is the right
+	--- thing to do.
+	---
+	--- @param key           table key accessed
+	--- @return              the value of the key (normally a method)
+	
 	- operatorIndex: key do
 		return function(self, ...)
 			local message = [[Invocation alloc] init]
@@ -264,7 +275,12 @@ do return end
 -- The above line causes execution to stop here! The rest of the file exists
 -- solely for the purpose of generating documentation.
 
-@implementation Object (SpecialMethods)
+--- I am the base class for all Objective Lua classes.
+
+@implementation Object : ignored
+@end
+
+@implementation Object (SpecialObjectMethods)
 	--- Returns a hash code for the object.
 	---
 	--- The hash code is a unique integer identifying the object. It is
@@ -274,8 +290,108 @@ do return end
 	--- @return              the hash code
 	
 	- hash
-	do
-	end
+	do end
+	
+	--- Returns the object's class.
+	---
+	--- @return              the class object
+	
+	- class
+	do end
+	
+	--- Returns the object's superclass.
+	---
+	--- @return              the superclass class object
+	
+	- superclass
+	do end
+@end
+
+@implementation Object (SpecialClassMethods)
+	--- Returns the name of this class.
+	---
+	--- @return              a string
+	
+	+ name
+	do end
+	
+	--- Returns the class' superclass.
+	---
+	--- @return              the superclass class object
+	
+	+ superclass
+	do end
+	
+@end
+
+@implementation Object (ClassDefinitionMethods)
+	--- Creates a new subclass of this class.
+	---
+	--- Do not use this method --- it is intended for use by the runtime only.
+	---
+	--- A new class is created as a subclass of this one, with its internal
+	--- `name` field set to the specified value. The class has @ref(+superclass),
+	--- @ref(+name), @ref(+methodTemplates) and @ref(+hash) methods predefined,
+	--- but no others.
+	---
+	--- @param name          the name of the new class
+	--- @return              the new class object
+	
+	+ createSubclassNamed: name
+	do end
+	
+	--- Adds class methods to a class.
+	---
+	--- Do not use this method --- it is intended for use by the runtime only.
+	---
+	--- The specified template containing class methods is added to the class.
+	--- (In the current implementation, the template is executed immediately
+	--- and the category name discarded.)
+	---
+	--- See @ref(methodTemplates) for information on templates.
+	---
+	--- @param categoryname  the name of the category
+	--- @param template      the method template
+	
+	+ addClassMethodCategory: categoryname withTemplate: template
+	do end
+	
+	--- Adds object methods to a class.
+	---
+	--- Do not use this method --- it is intended for use by the runtime only.
+	---
+	--- The specified template containing object methods is added to the class.
+	--- (In the current implementation, the template is added to the class'
+	--- template table and executed on object instantiation.)
+	---
+	--- See @ref(methodTemplates) for information on templates.
+	---
+	--- @param categoryname  the name of the category
+	--- @param template      the method template
+	
+	+ addObjectMethodCategory: categoryname withTemplate: template
+	do end
+	
+	--- Returns the table of method templates for this class.
+	---
+	--- Do not use this method --- it is intended for use by the runtime only.
+	---
+	--- This method returns the table of method templates for the class. The
+	--- table is keyed by category name, with the default category having
+	--- value `1`.
+	---
+	--- Each template is a function with prototype:
+	---
+	---     function template(self, superclass, class)
+	---
+	--- When executed, the function adds methods to the table `self`;
+	--- `superclass` and `class` are the superclass and class objects
+	--- respectively.
+	---
+	--- @return              the method table
+	
+	+ methodTemplates
+	do end
 @end
 
 @implementation Object (SpecialStaticMethods)
@@ -288,6 +404,5 @@ do return end
 	--- @return              the hash code
 	
 	+ hash
-	do
-	end
+	do end
 @end

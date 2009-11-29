@@ -1,7 +1,9 @@
+local string_gsub = string.gsub
+
 module(..., package.seeall)
 
 local function mangle(s)
-	return s:gsub(":", "_")
+	return string_gsub(s, ":", "_")
 end
 
 local function stringify(s)

@@ -3,6 +3,7 @@ require 'olua.parser'
 require 'olua.unparser'
 
 local oldloadstring = loadstring
+local string_gsub = string.gsub
 
 module("olua", package.seeall)
 
@@ -26,6 +27,18 @@ do
 		return id
 	end
 end
+
+-- Mangles a selector into Lua form.
+
+function mangle(s)
+	return string_gsub(s, ":", "_")
+end
+
+-- Unmangles a selector into printable form.
+
+function unmangle(s)
+	return string_gsub(s, "_", ":")
+end 
 
 --------------------------------------------------------------------------
 --                               DRIVERS                                --

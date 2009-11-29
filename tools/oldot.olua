@@ -662,12 +662,12 @@ local OLDOT
 				"<frame src='overview-frame.html' name='packageListFrame' title='All Packages'>",
 				"<frame src='allclasses-frame.html' name='packageFrame' title='All classes'>",
 				"</frameset>",
-				"<frame src='overview-summary.html' name='classFrame' title='Description' scrolling='yes'>",
+				"<frame src='", [self summarypath], "' name='classFrame' title='Description' scrolling='yes'>",
 				"<noframes>",
 				"<h2>Frame alert</h2>",
 				"<p>This document is designed to be viewed using the frames feature. If you see this message, ",
 				"you are using a non-frame-capable web client.",
-				"<br>Link to <a href='overview-summary.html'>non-frame version</a>.",
+				"<br>Link to <a href='overview-frame.html'>non-frame version</a>.",
 				"</noframes>",
 				"</frameset>",
 				"</html>")
@@ -683,7 +683,9 @@ local OLDOT
 				"<html><head>",
 				"<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>",
 				"<title>Overview</title></head>",
-				"<body><h3>", [self title], "</h3>")
+				"<body><h3>", [self title], "</h3>",
+				"<a href='", [self summarypath], "' target='classFrame'>Home</a><br>",
+				"<a href='allclasses-frame.html' target='packageFrame'>All classes</a><br><br>")
 		
 		for _, p in ipairs(list) do
 			fp:write("<a href='", p, ".html' target='packageFrame'>", p, "</a><br>")
@@ -750,7 +752,24 @@ local OLDOT
 					return [o1 name] < [o2 name]
 				end)
 			[self writeClassList: pl to: package..".html" withTitle: package]
-		end 
+		end
+		
+		-- Now write out the class list for *all* packages.
+		
+		do
+			local allclasses = {}
+			for package, pl in pairs(packages) do
+				for _, class in ipairs(pl) do
+					allclasses[#allclasses+1] = class
+				end
+			end
+			table.sort(allclasses,
+				function(o1, o2)
+					return [o1 name] < [o2 name]
+				end)
+			[self writeClassList: allclasses to: "allclasses-frame.html"
+				withTitle: "All classes"]
+		end
 	end
 @end
 
@@ -758,6 +777,7 @@ local OLDOT
 	@statics
 		local outputdir
 		local title = "Objective Lua Documentation"
+		local summarypath = "about:blank"
 	@end
 	
 	- initUi
@@ -773,6 +793,13 @@ local OLDOT
 			withHandler:
 				function(arg)
 					outputdir = arg
+					return 1
+				end]
+				
+		[self addOptions: {"s", "summary"}
+			withHandler:
+				function(arg)
+					summarypath = arg
 					return 1
 				end]
 				
@@ -794,6 +821,7 @@ local OLDOT
 		stderr:write("Syntax: oldot [<options>...] <inputfile.olua>...\n")
 		stderr:write("   --help       -h     display this message\n")
 		stderr:write("   --output X   -oX    specify output directory\n")
+		stderr:write("   --summary X  -sX    specify path to overview page\n")
 		stderr:write("   --title X    -tX    specify overall title\n")
 	end
 	
@@ -817,6 +845,11 @@ local OLDOT
 	- title
 	do
 		return title
+	end
+	
+	- summarypath
+	do
+		return summarypath
 	end
 @end
 

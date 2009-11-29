@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1"
+ http-equiv="Content-Type">
+  <title>Objective Lua language overview</title>
+</head>
+<body>
+<h3>The Objective Lua language</h3>
+<h4>Introduction<br>
+</h4>
+<p>Objective Lua is very nearly a strict superset of conventional Lua.
+Very nearly any valid Lua program is also a valid Objective Lua program.<br>
+</p>
+<p>The one exception is that Objective Lua does not support the <code>[[...]]</code>
+syntax for long strings, as it conflicts with the method call syntax.
+You can still use <code>[=[...]=]</code> and variants, however.
+</p>
+<p>The conventional extension for Objective Lua files is <code>.olua</code>.<br>
+</p>
+<h4>Loading the standard library</h4>
+<p>All Objective Lua files must load the Objective Lua runtime.<br>
+</p>
+<pre>require "olua"<br></pre>
+<p>You will almost certainly also wish to load some of the standard
+library:<br>
+</p>
+<pre>require "olua.lib"<br>require "olua.app"<br></pre>
+<p>Unlike Java it is not possible to import individual classes --- the
+level of granularity is the package.<br>
+</p>
+<p>Classes inside a package must be referred to by their full name, but
+if you desire it is possible to create an alias to a class as follows:<br>
+</p>
+<pre>local Object = olua.lib.Object<br></pre>
+<h4>Defining classes</h4>
+<p>Classes are defined using the <code>@implementation</code>
+statement. This
+comes in two varieties:
+</p>
+<pre>@implementation NewClassName : SuperclassName<br>  @statics<br>    statics block<br>  @end<br><br>  ...method declarations...<br>@end<br></pre>
+<p>or:<br>
+</p>
+<pre>@implementation NewClassName (CategoryName)<br>  @statics<br>    statics block<br>  @end<br><br>  ...method declarations...<br>@end<br></pre>
+<p>The first form creates a new class, subclassing <code>SuperclassName</code>
+to form <code>NewClassName</code>. The second form adds a category to
+an already existing class.<br>
+</p>
+<p>Categories allow methods to be added to a class after the class has
+been defined. <code>CategoryName</code> is a unique identifier (in a
+namespace private to the class) that identifies the category; this is
+used to prevent the same block from being added twice. You may add any
+number of categories to a class and you may add categories to any
+class. Methods in a category override methods in the default class
+declaration, but adding the same method in two different categories
+produces undefined behaviour.<br>
+</p>
+<p>Categories allow a class definition to be spread across multiple
+source files. Be aware that the class declaration itself must be seen
+first, before any category definitions.<br>
+</p>
+<p>The option <code>@statics...@end</code>
+block contains a block of Lua code that is executed once when each
+object is instantiated. Any declarations in it are visible in the
+methods in the <code>@implementation...@end</code> block. This is used
+to
+define instance variables. Code in the statics block can refer to <code>self</code>
+to access the current object.<br>
+</p>
+<p>Adding categories to a class after the class has been instantiated
+will not affect the instances.<br>
+</p>
+<h4>Defining methods</h4>
+<p>A method declaration looks as follows:<br>
+</p>
+<pre>- methodsignature<br>do<br>  ...code...<br>end<br></pre>
+<p>The leading <code>-</code> can be a <code>+</code> to signify that
+this is a class method, not an object method. (Note that class
+definition blocks may contain only one kind of method definition; you
+must define your class methods and instance methods in different
+categories.)<br>
+</p>
+<p>The method signature is a keyworded list of identifiers, with the
+parameters defined after each selector element. For example:<br>
+</p>
+<pre>methodWith: a and: b<br></pre>
+<p>...defines a method called <code>methodWith:and:</code> with two
+arguments, <code>a</code> and <code>b</code>. If the method has no
+arguments, a single term suffices.
+</p>
+<p>Additional non-keyworded arguments may also be added. For example:</p>
+<pre>methodWith: a and: b, c, d, e</pre>
+<p>...defines a method with two keyworded arguments but five overall
+arguments.</p>
+<p>It is possible to define non-keyworded arguments on a method with no
+keyworded arguments:</p>
+<pre>method, a, b, c</pre>
+<p>...does such. This has an identical method signature to the standard
+Lua code:</p>
+<pre>method(a, b, c)</pre>
+<p>Methods may contain varargs elements, but only as the last
+non-keyworded argument.<br>
+</p>
+<p>Inside a method definition, the <code>self</code> variable refers
+to the current object. Methods may return any number of values.<br>
+</p>
+<h4>Calling methods</h4>
+<p>Methods are called with the following syntax:<br>
+</p>
+<pre>result1, result2, result3 = [object methodWith: a and: b, c, d, e]<br></pre>
+<p>Method calls may be nested. For example, the standard constructor
+idiom is as follows:<br>
+</p>
+<pre>instance = [[ClassName alloc] init]<br></pre>
+<p>To call the superclass' method implementation, use the following
+special form:<br>
+</p>
+<pre>result1, result2, result3 = [super methodWith: a and: b, c, d, e]<br></pre>
+<p>Calling a method with no keyworded arguments is identical to a
+traditional Lua method invocation. For example, the following two calls
+are equivalent and may be used interchangably:<br>
+</p>
+<pre>result = [self method]<br>result = self:method()<br></pre>
+<p>This also applies to methods with no keyworded arguments that have
+non-keyworded arguments:<br>
+</p>
+<pre>result = [self method, a, b, c]<br>result = self:method(a, b, c)<br></pre>
+<p>This can be used to provide interoperability between Objective Lua
+and Lua.<br>
+</p>
+<h4>Exceptions</h4>
+<p>Objective Lua has support for throwing and catching exceptions,
+using the following construction:<br>
+</p>
+<pre>@try<br>  ...code...<br>@catch (e)<br>  ...code...<br>@finally<br>  ...code...<br>@end<br></pre>
+<p>The <code>@finally</code> block is optional. The <code>@try</code>
+and <code>@catch</code> blocks are
+mandatory.<br>
+</p>
+<p>Exceptions may be thrown with the <code>@throw</code> keyword:
+</p>
+<pre>@throw [[MyException alloc] init]</pre>
+<p>Exceptions may be any kind of object, but using Objective Lua
+objects subclassed from <code>Exception</code> is highly recommended.</p>
+<p>Unrecognised exceptions should be rethrown:</p>
+<pre>@try<br>  callFunction()<br>@catch (e)<br>  if olua.isobject(e) and [e isKindOfClass: MyException] then<br>    handleException()<br>  else<br>    @throw e<br>  end<br>@end<br></pre>
+<p>As Lua may throw run-time errors at any point, it is important to
+check that
+the object is an Objective Lua object before calling methods on it. The
+runtime will attempt to wrap Lua errors in LegacyException objects, but
+this cannot work in all cases.<br>
+</p>
+<p><code>return</code> may be used inside a <code>@try...@end</code>
+block in the normal fashion:<br>
+</p>
+<pre>function fn()<br>  @try<br>    callFunction()<br>  @catch (e)<br>    return 1<br>  @finally<br>    return 2<br>  @end<br>  return 3<br>end<br></pre>
+<p>Any number of return values may be used.<br>
+</p>
+</body>
+</html>

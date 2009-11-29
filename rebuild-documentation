@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+rm -rf doc/oldot
+mkdir doc/oldot
+./oldot -s ../summary.html -o doc/oldot olua/*/*.olua

@@ -1,47 +1,4 @@
---------------------------------------------------------------------------
---                           STANDARD LIBRARY                           --
---------------------------------------------------------------------------
-
--- Ha, ha, ha.
---
--- This is a bare-bones base class, needed for defining any other
--- classes. (While you *can* create new class hierarchies if you like,
--- it's rather against the whole Objective Lua spirit.)
---
--- The doesNotRecogniseSelector: support is broken, and is only included
--- as an example of how this will work. The noddy object system that the
--- Objective Lua runtime uses is incompatible with this.
-
-@interface Object
-@end
-
-@implementation Object
-	+ alloc
-		local o = {}
-		setmetatable(o, {__index = self._methods })
-		return o
-	end
-
-	-- Bug: these both report the object as Object, not the correct one.
-	-- We're going to have to rewrite the object system to make this work.
-	
-	+ doesNotRecogniseSelector: selector
-		error('Unrecognised selector '..selector..' sent to '..
-			([self name]))
-	end
-	
-	- doesNotRecogniseSelector: selector
-		error('Unrecognised selector '..selector..' sent to instance of '..
-			([[self class] name]))
-	end
-	
-	setmetatable(Object._methods, {__index = Object._methods.doesNotRecogniseSelector_})
-	setmetatable(Object, {__index = Object.doesNotRecogniseSelector_})
-		
-	- init
-		return self
-	end
-@end
+require 'olua.lib'
 
 --------------------------------------------------------------------------
 --                             EXAMPLE CODE                             --
@@ -50,78 +7,74 @@
 -- A very simple example showing how to use the various Objective Lua
 -- features. It's mostly intended to be read, rather than to do anything
 -- useful.
+--
+-- You can run me with:
+--
+--   lua tools/oluarun.lua -- example.olua
 
-@interface Organism : Object
-@end
-
-@interface Plant : Organism
-@end
-
-@interface Cabbage : Plant
-@end
-
-@interface Foxglove : Plant
-@end
-
-@interface Animal : Organism
-@end
-
-@interface Dog : Animal
-@end
-
-@interface Cow : Animal
-@end
-
-@implementation Organism
+@implementation Organism : olua.lib.Object
 	- consume
+	do
 		print("I doesn't look edible.")
 	end
 	
 	- vocalise
+	do
 		print("I don't make noises.")
 	end
 	
 	- announce
+	do
 		print("I'm a "..([[self class] name]).."!")
 	end
 @end
 
-@implementation Cabbage
+@implementation Plant : Organism
+@end
+
+@implementation Cabbage : Plant
 	- consume
+	do
 		print("Yuk. Vegetables.")
 	end
 @end
 
-@implementation Foxglove
+@implementation Foxglove : Plant
 	- consume
+	do
 		print("Suicide is not the only option.")
 	end
 @end
 
-@implementation Animal
+@implementation Animal : Organism
 	- consume
+	do
 		print("Mmm, proteinaceous cytoplasm.")
 	end
 @end
 
-@implementation Dog
+@implementation Dog : Animal
 	- consume
+	do
 		[super consume]
 		print("Needs sauce.")
 	end
 	
 	- vocalise
+	do
 		print("Woof!")
 	end
 @end
 
-@implementation Cow
+@implementation Cow : Animal
 	- consume
+	do
 		[super consume]
 		print("Yum!")
 	end
 	
 	- vocalise
+	do
 		print("Moo!")
 	end
 @end

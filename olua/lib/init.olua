@@ -6,6 +6,7 @@ module("olua.lib", package.seeall)
 
 local function createSubclass(superclass, name)
 	local templates = {}
+	local metadata = {}
 	
 	local id = olua_newobjectid()
 	local newclass =
@@ -21,7 +22,11 @@ local function createSubclass(superclass, name)
 			methodTemplates = function(class)
 				return templates
 			end,
-			
+	
+			methodMetadata = function(class)
+				return metadata
+			end,
+					
 			hash = function(class)
 				return id
 			end
@@ -50,10 +55,30 @@ end
 Object = createSubclass(nil, "Object")
 rawset(Object, "createSubclassNamed_", createSubclass)
 
+-- Merge some method metadata into a class.
+
+local function mergemetadata(class, m, c)
+	if m then
+		local metadata = class:methodMetadata()
+		for k, v in pairs(m) do
+			metadata[k] = v
+			v.category = c
+		end
+	end
+end
+
 -- Add a new class method category.
 
-rawset(Object, "addClassMethodCategory_withTemplate_",
-	 function(class, category, template)
+rawset(Object, "addClassMethodCategory_withTemplate_andMetadata_",
+	 function(class, category, template, metadata)
+		if not category then
+			category = 1
+		end
+		
+	 	-- Merge in the metadata (if any).
+	 	
+		mergemetadata(class, metadata, category)
+
 		-- We instantiate the template immediately; the methods are then added
 		-- to the current class. We just ignore the category name for now.
 		-- (We can't get the template to directly add the methods to the class
@@ -69,8 +94,8 @@ rawset(Object, "addClassMethodCategory_withTemplate_",
 
 -- Add a new object method category.
 
-rawset(Object, "addObjectMethodCategory_withTemplate_",
-	function(class, category, template)
+rawset(Object, "addObjectMethodCategory_withTemplate_andMetadata_",
+	function(class, category, template, metadata)
 		-- The template gets added to the set. We'll instantiate them when the
 		-- object gets instantiated.
 		
@@ -78,6 +103,10 @@ rawset(Object, "addObjectMethodCategory_withTemplate_",
 			category = 1
 		end
 		
+	 	-- Merge in the metadata (if any).
+	 	
+		mergemetadata(class, metadata, category)
+
 		local templates = class:methodTemplates()
 		if templates[category] then
 			error("Category already defined")

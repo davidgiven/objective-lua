@@ -35,6 +35,42 @@ local function stringleaf(s)
 	return leaf({type="string", text=stringify(s)})
 end
 
+local function astforconstant(c)
+	local t = type(c)
+	if (t == "table") then
+		local ast = {type="tableliteral"}
+		
+		local keys = {}
+		for k, _ in pairs(c) do
+			keys[k] = true
+		end
+		
+		for k, v in ipairs(c) do
+			keys[k] = nil
+			ast[#ast+1] = {value=astforconstant(v)}
+		end
+		
+		for k in pairs(keys) do
+			v = c[k]
+			ast[#ast+1] = {key=astforconstant(k), value=astforconstant(v)}
+		end
+		 
+		return ast
+	elseif (t == "boolean") then
+		if c then
+			return identifierleaf("true")
+		else
+			return identifierleaf("false")
+		end
+	elseif (t == "number") then
+		return leaf({type="number", text=c})
+	elseif (t == "string") then
+		return stringleaf(c)
+	else
+		error("internal error: unsupported constant type "..t)
+	end
+end
+
 function methodcall(ast)
 	local object = ast.object
 	local selector = ast.selector
@@ -157,18 +193,26 @@ function implementation(ast)
 	end
 
 	-- Collect the contents of the implementation chunk into local definitions,
-	-- object methods and class methods.
+	-- object methods and class methods. Also construct the metadata table.
 	
 	local locals = {}
 	local objectmethods = {}
 	local classmethods = {}
+	local metadata = {}
 	for _, k in ipairs(ast) do
 		if (k.type == "olua_methoddefinition") then
+			local m = {}
+			local s
 			if k.classmethod then
 				classmethods[#classmethods + 1] = k
+				s = "+" .. k.selector
 			else
 				objectmethods[#objectmethods + 1] = k
+				s = "-" .. k.selector
 			end
+			m.argtypes = k.argtypes
+			m.rettype = k.rettype
+			metadata[s] = m
 		else
 			locals[#locals + 1] = k
 		end
@@ -184,10 +228,10 @@ function implementation(ast)
 	local addclassmethod
 	local methods
 	if (#objectmethods > 0) then
-		addclassmethod = "addObjectMethodCategory_withTemplate_"
+		addclassmethod = "addObjectMethodCategory_withTemplate_andMetadata_"
 		methods = objectmethods
 	elseif (#classmethods > 0) then
-		addclassmethod = "addClassMethodCategory_withTemplate_"
+		addclassmethod = "addClassMethodCategory_withTemplate_andMetadata_"
 		methods = classmethods
 	else
 		return newast
@@ -223,10 +267,11 @@ function implementation(ast)
 					type="list",
 					identifierleaf("__olua_template"),
 					identifierleaf("__olua_super"),
-					identifierleaf("self")
+					identifierleaf("self"),
 				},
 				chunk = chunk
-			}
+			},
+			astforconstant(metadata)
 		}
 	}
 	

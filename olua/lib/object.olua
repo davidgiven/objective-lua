@@ -348,12 +348,15 @@ do return end
 	--- (In the current implementation, the template is executed immediately
 	--- and the category name discarded.)
 	---
-	--- See @ref(methodTemplates) for information on templates.
+	--- See @ref(methodTemplates) for information on templates. See
+	--- @ref(methodMetadata) for information on metadata.
 	---
 	--- @param categoryname  the name of the category
 	--- @param template      the method template
+	--- @param metadata      the metadata table for these methods
 	
 	+ addClassMethodCategory: categoryname withTemplate: template
+		andMetadata: metadata
 	do end
 	
 	--- Adds object methods to a class.
@@ -368,8 +371,10 @@ do return end
 	---
 	--- @param categoryname  the name of the category
 	--- @param template      the method template
+	--- @param metadata      the metadata table for these methods
 	
 	+ addObjectMethodCategory: categoryname withTemplate: template
+		andMetadata: metadata
 	do end
 	
 	--- Returns the table of method templates for this class.
@@ -391,6 +396,28 @@ do return end
 	--- @return              the method table
 	
 	+ methodTemplates
+	do end
+	
+	--- Returns the table of method metadata for this class.
+	---
+	--- Do not use this method --- it is intended for use by the runtime only.
+	---
+	--- This method returns the table of method metadata objects for the class.
+	--- The table is keyed by selector (including the initial `+` or `-`).
+	--- Each item is a table describing an individual method:
+	---
+	--- - `category`: a string naming the category this method was defined in
+	--- - `argtypes`: an array of type annotations for the arguments
+	--- - `rettype`: the type annotation for the return values
+	---
+	--- The absence of a method in the metadata table should not be considered
+	--- indicative of the absence of the method! In Objective Lua, *any*
+	--- method call may perform work, even if the runtime has defined no method
+	--- of that name.
+	---
+	--- @return              the metadata table              
+	
+	+ methodMetadata
 	do end
 @end
 

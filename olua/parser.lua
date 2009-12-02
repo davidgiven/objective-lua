@@ -797,8 +797,15 @@ olua_methoddefinition = function()
 	local classmethod = (t.text == "+")
 	
 	local selector = {}
+	local argtypes = {}
+	local rettype = ""
 	local args = {}
 	local extraargs = {}
+	
+	if optionalexpect("operator", "(") then
+		rettype = expect("identifier").text
+		expect("operator", ")")
+	end
 	
 	if not peek("identifier") and not peek("keyword") then
 		expectederror("identifier or selector element")
@@ -816,6 +823,14 @@ olua_methoddefinition = function()
 			end
 			
 			selector[#selector + 1] = t
+			
+			if optionalexpect("operator", "(") then
+				argtypes[#argtypes + 1] = expect("identifier").text
+				expect("operator", ")")
+			else
+				argtypes[#argtypes + 1] = ""
+			end
+			
 			args[#args + 1] = lvalueidentifier()
 		end
 	end
@@ -832,6 +847,8 @@ olua_methoddefinition = function()
 			type="olua_methoddefinition",
 			selector=table.concat(selector),
 			args=args,
+			argtypes=argtypes,
+			rettype=rettype,
 			extraargs=extraargs,
 			classmethod=classmethod,
 			chunk=c

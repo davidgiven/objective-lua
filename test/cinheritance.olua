@@ -3,38 +3,46 @@ require 'olua'
 do
 	@implementation Superclass : olua.lib.Object
 		+ method1
+		do
 			return 1
 		end
 		
 		+ method2
+		do
 			return 2
 		end
 		
 		+ method3
+		do
 			return 3
 		end
 	@end
 	
 	@implementation Subclass1 : Superclass
 		+ method1
+		do
 			return [super method1]
 		end
 		
 		+ method2
+		do
 			return 4
 		end
 	@end
 	
 	@implementation Subclass2 : Subclass1
 		+ method1
+		do
 			return [super method1]
 		end
 		
 		+ method2
+		do
 			return [super method2]
 		end
 		
 		+ method3
+		do
 			return 5
 		end
 	@end

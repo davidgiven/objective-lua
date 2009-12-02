@@ -3,10 +3,12 @@ require 'olua'
 do
 	@implementation TestClass : olua.lib.Object
 		- value
+		do
 			return 99, 98
 		end
 		
 		- value: n
+		do
 			return n + 1
 		end
 	@end

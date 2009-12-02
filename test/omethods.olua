@@ -3,34 +3,42 @@ require 'olua'
 do
 	@implementation TestClass : olua.lib.Object
 		- noarg
+		do
 			return 99
 		end
 		
 		- onearg: a
+		do
 			return a
 		end
 		
 		- twoarg: a and: b
+		do
 			return a, b
 		end
 		
 		- threearg: a and: b and: c
+		do
 			return a, b, c
 		end
 		
 		- threeargmulti: a and: b and: c, ...
+		do
 			return a, b, c, ...
 		end
 		 
 		- onelua, a
+		do
 			return a
 		end
 		
 		- twolua, a, b
+		do
 			return a, b
 		end
 		
 		- threeluamulti, a, b, c, ...
+		do
 			return a, b, c, ...
 		end
 	@end

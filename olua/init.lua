@@ -56,7 +56,6 @@ end
 function loadstring(intext, chunkname)
 	local outtext, e = translate(intext, chunkname)
 	if outtext then
-		io.open("out.lua", "w"):write(outtext)
 		return oldloadstring(outtext, "@"..chunkname)
 	end
 	return nil, e
@@ -97,11 +96,10 @@ function loadstream(file, filename)
 end
 
 function run(filename, ...)
-	--print("Running "..filename)
 	local file = assert(io.open(filename, "rb"))
 	local chunk = assert(loadstream(file, filename))
 	file:close()
-	chunk(...)
+	return chunk(...)
 end
 
 local function oluaload(modulename)

@@ -1,61 +1,105 @@
                                  OBJECTIVE LUA
                                  =============
 
-                             Pre-alpha release 0.0.1
-                              (C) 2009 David Given
-                                   2009-10-05
+                               Alpha release 0.1
+                               © 2009 David Given
+                                  2009-10-05
 
 INTRODUCTION
 ============
 
-Objective Lua is a toy to experiment with welding the Objective C class
-semantics on top of Lua. It is in no way finished, or even useful.
-Functionality is extremely limited and that functionality is, in places,
-actually broken. However, it does provide a working means of trying out the
-syntax and writing test programs to play with it. 
+Objective Lua is a experimental system that welds the Objective C class
+semantics on top of Lua. It works by translating Objective Lua code into
+standard Lua code on-the-fly. As such it is completely portable and completely
+compatible with your existing Lua system.
+
+The Objective Lua language is very nearly a pure superset of standard Lua,
+adding syntactic structures the provide:
+
+  - a formal class declaration system
+  - Objective C [object method: argument] syntax for calling methods
+  - exception handling
+  
+In this package, you get:
+
+  - the Objective Lua translator and run time
+  - a minimal class library
+  - full documentation
+  - a test suite
+  - the oldot autodocumentation tool, used to generate the API docs
+  
+Objective Lua is an experiment and is unfinished. However, it is currently in
+a sufficiently working state to be useful for writing real programs. I would
+recommend against it, however, as there is no guarantee that the APIs,
+semantics, or even syntax are stable. Please see the disclaimer further down
+this document.
 
 
 
 INSTALLATION
 ============
 
-Installation? Ha.
+You need the lpeg Lua addon module. This is available from:
 
-You need to install the Leg Lua grammar, which can be found here, into your
-Lua module path:
-
-  http://leg.luaforge.net/
-
-Now you can run the Objective Lua compiler with:
-
-  lua oluac.lua <infile> <outfile>
+  http://www.inf.puc-rio.br/~roberto/lpeg/lpeg.html
   
-This will convert an Objective Lua source file into a traditional Lua one,
-which can then be run with a standard Lua interpreter:
+If you want to use the oldot autodocumentation tool, you will also need the
+markdown module:
 
-  lua <outfile>
+  http://luaforge.net/projects/markdown
   
-(You need the Objective Lua runtime --- olua.lua --- on your module path.
-The current directory will do fine.)
+If you're on a Debian-alike, you can install both of these with the following
+command:
+
+  apt-get install liblua5.1-markdown0 liblua5.1-lpeg2
+
+Once you've done this, all you need do is to add the olua directory to your Lua
+path. Objective Lua contains no C code, and nothing needs to be compiled.
+
+You can try Objective Lua locally by starting your Lua interpreter and then
+entering:
+
+  package.path = package.path .. ";?/init.lua"
+
+
+
+USING
+=====
+
+To use Objective Lua, simply do:
+
+  require 'olua'
+  
+...from your program. You can now require any Objective Lua modules and they
+will be automatically translated and loaded.
+
+Note that the main program itself cannot contain Objective Lua code! However,
+there is a tool supplied that will load and run Objective Lua programs:
+
+  ./oluarun example.olua
+  
+If you want to see the translated code, oluac is a very crude utility that
+will do this. Be aware that the translated code is not intended to be human-
+readable, and indeed, isn't:
+
+  ./oluac example.olua
 
 
 
 DOCUMENTATION
 =============
 
-There is none. The code is tiny, and should be simple enough to understand.
-There's a discussion of the rationale behind Objective Lua on the website at:
+The Objective Lua language and API is extensively, but concisely, documented.
+See the doc directory. Most of the documentation is built automatically using
+the oldot tool; if you change the standard library or add your own classes,
+you can run:
 
-  http://www.cowlark.com/objective-lua
+  ./rebuild-documentation
   
-Meanwhile, here is a manifest so you know what you're looking at:
+...and it'll get regenerated. If you do this, please also run the test suite:
 
-  README - this file.
-  COPYING - the license.
-  oluac.lua - the Objective Lua compiler.
-  olua.lua - the Objective Lua runtime.
-  test.olua - the example program and minimal Object class definition.
-  
+  ./run-tests
+    
 
 
 DISCLAIMER
@@ -63,7 +107,7 @@ DISCLAIMER
 
 Objective Lua is EXPERIMENTAL SOFTWARE!
 
-It is NOT EVEN ALPHA!
+It is ALPHA!
 
 DO NOT USE IT for ANYTHING!
 
@@ -74,7 +118,7 @@ If bad stuff happens DO NOT BLAME ME because YOU HAVE BEEN WARNED!
 LEGAL STUFF
 ===========
 
-Spey is © 2009 David Given. It is distributable under the conditions
+Objective Lua is © 2009 David Given. It is distributable under the conditions
 laid out by the MIT open source license. You can find a copy in the file
 COPYING.
 
@@ -82,4 +126,5 @@ COPYING.
 REVISION HISTORY
 ================
 
-Objective Lua 0.0.1: first toy release.
+Objective Lua 0.1: 2009-12-16: first release as a serious program.
+Objective Lua 0.0.1: 2009-10-05: first toy release.

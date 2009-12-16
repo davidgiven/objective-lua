@@ -1,0 +1,2 @@
+#!/bin/sh
+exec rsync -avP --delete -e ssh doc dtrg,olua@web.sourceforge.net:htdocs/

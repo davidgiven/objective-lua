@@ -21,7 +21,42 @@ fi
 
 mkdir ../$PACKAGE-$1
 
-tar cf - . --exclude="*/.*" --exclude="debian" --exclude="bin" \
+tar cf - . \
+	./COPYING \
+	./README \
+	./doc/documentation.wg \
+	./doc/language-overview.html \
+	./doc/runtime.html \
+	./doc/summary.html \
+	./doc/oldot/* \
+	./example.olua \
+	./oldot \
+	./olua/app/application.olua \
+	./olua/app/argumentparser.olua \
+	./olua/app/init.olua \
+	./olua/init.lua \
+	./olua/lexer.lua \
+	./olua/lib/exception.olua \
+	./olua/lib/init.olua \
+	./olua/lib/invocation.olua \
+	./olua/lib/object.olua \
+	./olua/lib/proxy.olua \
+	./olua/parser.lua \
+	./olua/transform.lua \
+	./olua/unparser.lua \
+	./oluac \
+	./rebuild-documentation \
+	./run-tests \
+	./test/_framework.olua \
+	./test/cinheritance.olua \
+	./test/exceptions.olua \
+	./test/oinheritance.olua \
+	./test/omethods.olua \
+	./test/proxy.olua \
+	./tools/oldot.olua \
+	./tools/oluac.lua \
+	./tools/oluarun.lua \
+	./tools/run-tests.lua \
 	| (cd ../$PACKAGE-$1; tar xf -) 
 rm ../$PACKAGE-$1/mkdist
 
@@ -29,4 +64,3 @@ rm ../$PACKAGE-$1/mkdist
 
 echo ""
 echo "Done --- but did you remember to update the version number in the README?"
-

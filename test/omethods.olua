@@ -22,7 +22,7 @@ do
 			return a, b, c
 		end
 		
-		- (int) fourarg: (string) a and: (int) b and: c and: (fnord) d
+		- (int) fourarg: (string) a and: (int) b and: c and: (fnord baz boo do end 4 "seven") d
 		do
 			return a, b, c, d
 		end

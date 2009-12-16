@@ -43,6 +43,7 @@ local tableliteral
 local olua_methodcall
 local olua_implementation
 local olua_implementation_chunk
+local olua_typeannotation
 local olua_methoddefinition
 local olua_throw
 local olua_trycatchfinally
@@ -792,6 +793,24 @@ olua_implementation_stat = function()
 	statementerror(t)
 end
 
+olua_typeannotation = function()
+	expect("operator", "(")
+	local result = {}
+	while true do
+		local t = tokens[pos]
+		if (t.type == "operator") then
+			if (t.text == ")") then
+				pos = pos + 1
+				break
+			end
+			unexpectederror(t.type, t.text)
+		end
+		result[#result+1] = t.text
+		pos = pos + 1
+	end
+	return result
+end
+
 olua_methoddefinition = function()
 	local t = expect("operator", "-", "+")
 	local classmethod = (t.text == "+")
@@ -802,9 +821,8 @@ olua_methoddefinition = function()
 	local args = {}
 	local extraargs = {}
 	
-	if optionalexpect("operator", "(") then
-		rettype = expect("identifier").text
-		expect("operator", ")")
+	if peek("operator", "(") then
+		rettype = olua_typeannotation()
 	end
 	
 	if not peek("identifier") and not peek("keyword") then
@@ -824,11 +842,10 @@ olua_methoddefinition = function()
 			
 			selector[#selector + 1] = t
 			
-			if optionalexpect("operator", "(") then
-				argtypes[#argtypes + 1] = expect("identifier").text
-				expect("operator", ")")
+			if peek("operator", "(") then
+				argtypes[#argtypes + 1] = olua_typeannotation()
 			else
-				argtypes[#argtypes + 1] = ""
+				argtypes[#argtypes + 1] = {}
 			end
 			
 			args[#args + 1] = lvalueidentifier()

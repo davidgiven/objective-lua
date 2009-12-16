@@ -415,6 +415,10 @@ do return end
 	--- method call may perform work, even if the runtime has defined no method
 	--- of that name.
 	---
+	--- Type annotations consist of a list of tokens from the type annotation.
+	--- Each token is a string. (String tokens contain the quotes.) If the
+	--- argument had no type annotation, the list is empty.
+	---
 	--- @return              the metadata table              
 	
 	+ methodMetadata

@@ -20,8 +20,7 @@ if [ -d ../$PACKAGE-$1 ]; then
 fi
 
 mkdir ../$PACKAGE-$1
-
-tar cf - . \
+cp -v -a --parents \
 	./COPYING \
 	./README \
 	./doc/documentation.wg \
@@ -57,10 +56,10 @@ tar cf - . \
 	./tools/oluac.lua \
 	./tools/oluarun.lua \
 	./tools/run-tests.lua \
-	| (cd ../$PACKAGE-$1; tar xf -) 
-rm ../$PACKAGE-$1/mkdist
+	\
+	../$PACKAGE-$1
 
-(cd .. && tar cvf $PACKAGE-$1.tar.bz2 --bzip2 $PACKAGE-$1)
+(cd .. && tar cvf $PACKAGE-$1.tar.bz2 --bzip2 $PACKAGE-$1) && rm -rf ../$PACKAGE-$1
 
 echo ""
 echo "Done --- but did you remember to update the version number in the README?"

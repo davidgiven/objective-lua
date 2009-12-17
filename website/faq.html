@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<title>Objective Lua: Objectifying Lua</title>
+</head>
+<body>
+<h1>Objective Lua frequently asked questions</p>
+
+<h2>Does this require Objective C?</h2>
+<p>No. Objective Lua has no relation to Objective C other than borrowing the
+syntax and part of the name. The Objective Lua class hierarchy is entirely
+different (although it's inspired by it). The distribution package is
+completely standalone and requires no additional software other than
+<a href="http://www.lua.org">Lua</a>, <a href="http://www.inf.puc-rio.br/~roberto/lpeg/lpeg.html">Lpeg</a>,
+and (optionally) <a href="http://luaforge.net/projects/markdown">Lua Markdown</a>.
+</p>
+
+<h2>Is there an Objective C bridge?</h2>
+<p>Right now, no, but I'm hoping to see one soon.</p>
+
+<h2>What native code does this contain?</h2>
+<p>None. It's all in pure Lua.</p>
+
+<h2>What's the performance like?</h2>
+<p>Objective Lua code should run at the same speed as classic Lua code ---
+that's what it compiles to, after all. Objective Lua method calls are identical
+to Lua method calls.</p>
+<p>However, right now creating Objective Lua objects is quite expensive, so if
+your program does a lot of object churn, you may see performance issues there.
+Also, the natural Objective Lua coding style is to use lots of little methods
+rather than a few big ones, so there is increased overhead due to more table
+lookups. Of course, you don't have to write your code like that...</p>
+
+<h2>Does it work with <a href="http://luajit.org/">LuaJIT</a>?</h2>
+<p>Naturally. It's much faster, too.</p>
+
+<h2>Does it work on [insert OS here]?</h2>
+<p>As it's all in stock Lua and contains no platform-specific code, almost
+certainly. I only tested it on Linux, though.<p>
+
+<h2>Does it work on World of Warcraft?</h2>
+<p>That's a very good question. And the answer is... I don't know. If anyone
+gets it working, please <a href="mailto:dg@cowlark.com">let me know</a>!</p>
+
+<h2>I think you're insane.</h2>
+<p>Thank you.</p>
+
+</body>
+</html>

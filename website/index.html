@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html">
+<title>Objective Lua: Objectifying Lua</title>
+</head>
+<body>
+<h1>Objective Lua</h1><p><b>New! v0.1 released!</b> This time we're serious!</p>
+<h2>What?</h2>
+<p>Objective Lua is an almost pure superset of <a href="http://www.lua.org">Lua</a> that welds the <a href="http://en.wikipedia.org/wiki/Objective-C">Objective C</a> object orientation system and syntax on top of the classic Lua language. It is written entirely in Lua and works by translating Objective Lua code into Lua code as it is loaded. This means that it's incredibly portable and incredibly fast.</p>
+<p>What you get out of the language are:</p>
+<ul><li>All the speed and flexibility of traditional Lua</li>
+<li>Seamless interoperability with Lua</li>
+<li>A formal, precise object orientation system</li>
+<li>Proper exception handling (including <code>finally</code>!)</li>
+<li>All the clarity of the Objective C method syntax</li>
+<li>Only 3000 lines of code, including the documentation!</li>
+</ul>
+<p>For more information, I'd encourage you to <a href="doc/oldot">read the online documentation</a>.
+Alternatively, you could <a href="http://olua.git.sourceforge.net/git/gitweb.cgi?p=olua/olua;a=blob;f=example.olua;hb=HEAD">look at an example program</a>.
+You probably also want to <a href="faq.html">check out the FAQ</a>.
+</p>
+<h2>Why?</h2>
+<p>Hack value?</p>
+<p>It started out as, more or less, a <a href="http://www.cowlark.com/objective-lua/">joke I put together in a few hours</a>.
+It went memetic and I realised that there was actually quite a lot of interest. The Objective C class system, stolen more or less intact from Smalltalk, is interesting as it's
+largely orthogonal from the actual language. It can, with a suprisingly small amount of work, be dropped
+more or less intact into another language. And it has been: there's <a href="http://cappuccino.org/learn/tutorials/objective-j-tutorial.php">Objective-J</a>,
+<a href="http://search.cpan.org/~kyled/ObjectivePerl-0.04/ObjectivePerl.pm">Objective Perl</a>, and <a href="http://objective.modula2.net/">Objective Modula-2</a>, for example, which are Objectified Javascript and Modula-2 respectively.
+So there's precedent.</p>
+<p>The other thing is that writing the example program for Objective Lua just felt <i>so comfortable</i>. The dynamic nature of the Objective C class structure is a natural fit to Lua's dynamic types and ad-hoc data structures. I did later find a few places where the syntaxes clashed --- that's why Objective Lua is only <i>nearly</i> a strict superset of Lua --- but even after rejigging the syntax to work around these issues, that feeling of ease remained. For me, at least, code just flows smoothly when writing Objective Lua.
+<h2>How?</h2>
+<p>Objective Lua is a personality skin for Lua. That is, it's a layer that sits in the package loader list which reads in Objective Lua <code>.olua</code> files and translates them to classic Lua code as needed.</p>
+<p>What this means is that Objective Lua code <i>is</i>, to all intents and purposes, Lua code --- once it's been loaded. This means that Objective Lua code interoperates seamlessly with Lua. You can call one from the other (because they're the same language).</p>
+<p>I've also taken care that the Objective Lua object system is as compatible as possible with standard Lua practices. You can call Objective Lua objects using the standard <code>object:method(args)</code> syntax, if you want. Conversely, you can use Objective Lua syntax to call methods on any Lua object; they don't have to be owned by Objective Lua (or even subclassed from <code>olua.lib.Object</code>).</p>
+<p><a href="doc/oldot">Documentation is provided</a>; currently it's a bit sparse but should be complete. API documents are created automatically from annotated source by a tool called <code>oldot</code> (provided. Naturally, it's written in Objective Lua). I'd also encourage you to <a href="https://sourceforge.net/mailarchive/forum.php?forum_name=olua-users">join the mailing list</a> for assistance. (Especially, for non-sensitive issues I'd prefer you emailed the list than mail me directly.)</p>
+<h2>Why not?</h2>
+<p>Objective Lua is
+<b>experimental software</b>. It's an interesting experiment. It's not complete --- there are many bugs and omissions --- and there's no guarantee that any of the APIs or even the syntax will remain stable. While I don't <i>think</i> there are any showstopping bugs, I'd get a little twitchy if anyone announced they were writing big software projects in it.</p>
+<h2>Where?</h2>
+<p>Objective Lua is
+<a href="http://sourceforge.net/projects/olua">hosted on SourceForge</a>.</p>
+<p><a href="http://sourceforge.net"><img
+	src="http://sourceforge.net/sflogo.php?group_id=233411&amp;type=1"
+	alt="SourceForge.net Logo" border="0" height="31" width="88"></a></p>
+<p>You can get the most recent version of Objective Lua <a
+	href="https://sourceforge.net/projects/olua/files/">from
+the project download page</a>.</p>
+<h2>What's new?</h2>
+<p><b>Version 0.1</b>, 2009-12-16: First real release.</p>
+<p><b>Version 0.0.1</b>, 2009-10-05: The toy release.</p>
+<h2>Who?</h2>
+<p>Clue was written by
+<a href="http://www.cowlark.com">David Given</a>. The program is freely distributable under the terms of the
+<a href="http://www.opensource.org/licenses/mit-license.php">MIT License</a>.</body>
+</html>
